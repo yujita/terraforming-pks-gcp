@@ -12,6 +12,19 @@ brew install Caskroom/cask/google-cloud-sdk
 brew install terraform
 ```
 
+### Service Account
+
+You will need a key file for your service account to allow terraform to deploy resources. If you don't have one, you can create a service account and a key for it:
+
+```
+export PROJECT_ID=XXXXXXXX
+export ACCOUNT_NAME=YYYYYYYY
+gcloud iam service-accounts create ${ACCOUNT_NAME} --display-name "PKS Account"
+gcloud iam service-accounts keys create "terraform.key.json" --iam-account "${ACCOUNT_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
+gcloud projects add-iam-policy-binding ${PROJECT_ID} --member "serviceAccount:${ACCOUNT_NAME}@${PROJECT_ID}.iam.gserviceaccount.com" --role 'roles/owner'
+```
+
+
 ### Var File
 
 Copy the stub content below into a file called `terraform.tfvars` and put it in the root of this project.
