@@ -9,7 +9,7 @@ cat <<EOF
 ## Google Cloud Platform Config
 
 Project ID = $(echo $AUTH_JSON | jq -r .project_id)
-
+Default Deployment Tag = $(cat terraform.tfstate | jq -r '.modules[0].outputs["Default Deployment Tag"].value')
 AuthJSON = ${AUTH_JSON}
 
 ## Director Config
