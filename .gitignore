@@ -4,3 +4,4 @@
 terraform.key.json
 *.tfvars
 plan
+credentials.yml
