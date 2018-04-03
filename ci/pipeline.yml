@@ -700,7 +700,7 @@ jobs:
             --product-properties "${configuration_properties}" \
             --product-resources "${configuration_resources}" \
 
-          echo "PKS API: https://pks-api-${PKS_DOMAIN}:9092"
+          echo "PKS API: https://pks-api-${PKS_DOMAIN}:9021"
           echo "UAA: https://api-${PKS_DOMAIN}:8443"
 
 - name: deploy-pks
