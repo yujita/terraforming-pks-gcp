@@ -687,8 +687,6 @@ jobs:
           EOF
           )
 
-          echo $configuration_resources | jq .
-
           echo "Configuring PKS Tile ..."
 
           om-linux \
