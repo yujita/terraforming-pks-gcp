@@ -526,6 +526,7 @@ jobs:
     params:
       OPS_MGR_USR: ((ops_mgr_usr))
       OPS_MGR_PWD: ((ops_mgr_pwd))
+      INTERNET_CONNECTED: ((internet_connected))
     config:
       platform: linux
       image_resource:
@@ -573,6 +574,7 @@ jobs:
           AUTH_JSON=$(cat terraform-state/terraform.tfstate | jq -r .modules[0].outputs.AuthJSON.value)
           GCP_PROJECT_ID=$(echo $AUTH_JSON | jq -r .project_id)
           GCP_NETWORK=$(cat terraform-state/terraform.tfstate | jq -r '.modules[0].resources."google_compute_network.pks-network".primary.id')
+          GCP_RESOURCE_PREFIX=$(cat terraform-state/terraform.tfstate | jq -r '.modules[0].outputs."Default Deployment Tag".value')
 
           availability_zones=$(cat terraform-state/terraform.tfstate | jq -r '.modules[0].outputs."Availability Zones".value | map({name: .})')
           az_configuration="{\"availability_zones\": $availability_zones}"
@@ -671,6 +673,22 @@ jobs:
               }'
           )
 
+          LB_NAME="tcp:${GCP_RESOURCE_PREFIX}-pks-api"
+          configuration_resources=$(cat <<-EOF
+          {
+            "pivotal-container-service": {
+              "instance_type": {
+                "id": "micro"
+              },
+              "elb_names": ["${LB_NAME}"],
+              "internet_connected": ${INTERNET_CONNECTED}
+            }
+          }
+          EOF
+          )
+
+          echo $configuration_resources | jq .
+
           echo "Configuring PKS Tile ..."
 
           om-linux \
@@ -681,8 +699,8 @@ jobs:
             configure-product \
             --product-name "${PRODUCT_NAME}" \
             --product-network "${configuration_network}" \
-            --product-properties "${configuration_properties}" \  
-          # --product-resources "${configuration_resources}" \
+            --product-properties "${configuration_properties}" \
+            --product-resources "${configuration_resources}" \
 
           echo "PKS API: https://pks-api-${PKS_DOMAIN}:9092"
           echo "UAA: https://api-${PKS_DOMAIN}:8443"
