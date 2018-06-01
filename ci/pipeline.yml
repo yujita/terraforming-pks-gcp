@@ -26,6 +26,13 @@ resources:
   source:
     api_token: ((pivnet_api_token))
     product_slug: pivotal-container-service
+    product_version: 1\.0\.*
+- name: stemcell
+  type: pivnet
+  source:
+    api_token: ((pivnet_api_token))
+    product_slug: stemcells
+    product_version: 3468\.*
 
 groups:
 - name: pks
@@ -37,6 +44,7 @@ groups:
   - deploy-director
   - upload-pks
   - config-pks
+  - upload-stemcell
   - deploy-pks
   - wipe-env
   - show-next-instructions
@@ -60,6 +68,7 @@ jobs:
         type: docker-image
         source:
           repository: pcfnorm/rootfs
+          tag: 1.0.14
       run:
         path: bash
         args: 
@@ -147,6 +156,7 @@ jobs:
         type: docker-image
         source:
           repository: pcfnorm/rootfs
+          tag: 1.0.14
       inputs:
       - name: terraform-state
       run:
@@ -191,6 +201,7 @@ jobs:
         type: docker-image
         source:
           repository: pcfnorm/rootfs
+          tag: 1.0.14
       inputs:
       - name: terraform-state
       run:
@@ -199,166 +210,107 @@ jobs:
         - -c
         - |
           set -eu
+          cp /usr/local/bin/om-linux /usr/local/bin/om
+          cp terraform-state/terraform.tfstate ./
 
-          AUTH_JSON=$(cat terraform-state/terraform.tfstate | jq -r .modules[0].outputs.AuthJSON.value)
-          OPSMAN_DOMAIN_OR_IP_ADDRESS=$(cat terraform-state/terraform.tfstate | jq -r '.modules[0].resources."google_compute_address.ops-manager-public-ip".primary.attributes.address')
+          INTERNET_CONNECTED=true
+          AUTH_JSON=$(cat terraform.tfstate | jq -r .modules[0].outputs.AuthJSON.value)
+          OPSMAN_DOMAIN_OR_IP_ADDRESS=$(cat terraform.tfstate | jq -r '.modules[0].resources."google_compute_address.ops-manager-public-ip".primary.attributes.address')
           GCP_PROJECT_ID=$(echo $AUTH_JSON | jq -r .project_id)
-          GCP_RESOURCE_PREFIX=$(cat terraform-state/terraform.tfstate | jq -r '.modules[0].outputs."Default Deployment Tag".value')
-          GCP_SERVICE_ACCOUNT_KEY=${AUTH_JSON}
-          
-          iaas_configuration=$(
-            jq -n \
-              --arg gcp_project "$GCP_PROJECT_ID" \
-              --arg default_deployment_tag "$GCP_RESOURCE_PREFIX" \
-              --arg auth_json "$GCP_SERVICE_ACCOUNT_KEY" \
-              '
-              {
-                "project": $gcp_project,
-                "default_deployment_tag": $default_deployment_tag,
-                "auth_json": $auth_json
-              }
-              '
-          )
+          GCP_RESOURCE_PREFIX=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Default Deployment Tag".value')
+          GCP_SERVICE_ACCOUNT_KEY=$(echo ${AUTH_JSON})
+          AVAILABILITY_ZONES=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Availability Zones".value | map({name: .})' | tr -d '\n' | tr -d '"')
+          PKS_INFRASTRUCTURE_NETWORK_NAME=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Infrastructure Network Name".value')
+          PKS_INFRASTRUCTURE_IAAS_IDENTIFIER=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Infrastructure Network Google Network Name ".value')
+          PKS_INFRASTRUCTURE_NETWORK_CIDR=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Infrastructure Network CIDR".value')
+          PKS_INFRASTRUCTURE_RESERVED_IP_RANGES=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Infrastructure Network Reserved IP Ranges".value')
+          PKS_INFRASTRUCTURE_DNS=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Infrastructure Network DNS".value')
+          PKS_INFRASTRUCTURE_GATEWAY=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Infrastructure Network Gateway".value')
+          PKS_INFRASTRUCTURE_AVAILABILITY_ZONES=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Availability Zones".value' | tr -d '\n')
+          PKS_MAIN_NETWORK_NAME=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Main Network Name".value')
+          PKS_MAIN_IAAS_IDENTIFIER=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Main Network Google Network Name ".value')
+          PKS_MAIN_NETWORK_CIDR=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Main Network CIDR".value')
+          PKS_MAIN_RESERVED_IP_RANGES=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Main Network Reserved IP Ranges".value')
+          PKS_MAIN_DNS=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Main Network DNS".value')
+          PKS_MAIN_GATEWAY=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Main Network Gateway".value')
+          PKS_MAIN_AVAILABILITY_ZONES=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Availability Zones".value' | tr -d '\n')
+          PKS_SERVICES_NETWORK_NAME=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Service Network Name".value')
+          PKS_SERVICES_IAAS_IDENTIFIER=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Service Network Google Network Name ".value')
+          PKS_SERVICES_NETWORK_CIDR=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Service Network CIDR".value')
+          PKS_SERVICES_RESERVED_IP_RANGES=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Services Network Reserved IP Ranges".value')
+          PKS_SERVICES_DNS=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Services Network DNS".value')
+          PKS_SERVICES_GATEWAY=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Services Network Gateway".value')
+          PKS_SERVICES_AVAILABILITY_ZONES=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Availability Zones".value' | tr -d '\n')
+          SINGLETON_AVAILABILITY_NETWORK=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Infrastructure Network Name".value')
+          SINGLETON_AVAILABILITY_ZONE=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Availability Zones".value | .[0]')
 
-          director_config=$(cat <<-EOF
-          {
-            "ntp_servers_string": "metadata.google.internal",
-            "resurrector_enabled": true,
-            "post_deploy_enabled": true,
-            "database_type": "internal",
-            "blobstore_type": "local"
-          }
-          EOF
-          )
-
-          availability_zones=$(cat terraform-state/terraform.tfstate | jq -r '.modules[0].outputs."Availability Zones".value | map({name: .})')
-          az_configuration="{\"availability_zones\": $availability_zones}"
-
-          network_configuration=$(
-            jq -n \
-              --argjson icmp_checks_enabled false \
-              --arg pks_infrastructure_network_name $(cat terraform-state/terraform.tfstate | jq -r '.modules[0].outputs."Infrastructure Network Name".value') \
-              --arg pks_infrastructure_iaas_identifier $(cat terraform-state/terraform.tfstate | jq -r '.modules[0].outputs."Infrastructure Network Google Network Name ".value') \
-              --arg pks_infrastructure_network_cidr $(cat terraform-state/terraform.tfstate | jq -r '.modules[0].outputs."Infrastructure Network CIDR".value') \
-              --arg pks_infrastructure_reserved_ip_ranges $(cat terraform-state/terraform.tfstate | jq -r '.modules[0].outputs."Infrastructure Network Reserved IP Ranges".value') \
-              --arg pks_infrastructure_dns $(cat terraform-state/terraform.tfstate | jq -r '.modules[0].outputs."Infrastructure Network DNS".value') \
-              --arg pks_infrastructure_gateway $(cat terraform-state/terraform.tfstate | jq -r '.modules[0].outputs."Infrastructure Network Gateway".value') \
-              --arg pks_infrastructure_availability_zones $(cat terraform-state/terraform.tfstate | jq -r '.modules[0].outputs."Availability Zones".value | join(",")') \
-              --arg pks_main_network_name $(cat terraform-state/terraform.tfstate | jq -r '.modules[0].outputs."Main Network Name".value') \
-              --arg pks_main_iaas_identifier $(cat terraform-state/terraform.tfstate | jq -r '.modules[0].outputs."Main Network Google Network Name ".value') \
-              --arg pks_main_network_cidr $(cat terraform-state/terraform.tfstate | jq -r '.modules[0].outputs."Main Network CIDR".value') \
-              --arg pks_main_reserved_ip_ranges $(cat terraform-state/terraform.tfstate | jq -r '.modules[0].outputs."Main Network Reserved IP Ranges".value') \
-              --arg pks_main_dns $(cat terraform-state/terraform.tfstate | jq -r '.modules[0].outputs."Main Network DNS".value') \
-              --arg pks_main_gateway $(cat terraform-state/terraform.tfstate | jq -r '.modules[0].outputs."Main Network Gateway".value') \
-              --arg pks_main_availability_zones $(cat terraform-state/terraform.tfstate | jq -r '.modules[0].outputs."Availability Zones".value | join(",")') \
-              --arg pks_services_network_name $(cat terraform-state/terraform.tfstate | jq -r '.modules[0].outputs."Service Network Name".value') \
-              --arg pks_services_iaas_identifier $(cat terraform-state/terraform.tfstate | jq -r '.modules[0].outputs."Service Network Google Network Name ".value') \
-              --arg pks_services_network_cidr $(cat terraform-state/terraform.tfstate | jq -r '.modules[0].outputs."Service Network CIDR".value') \
-              --arg pks_services_reserved_ip_ranges $(cat terraform-state/terraform.tfstate | jq -r '.modules[0].outputs."Services Network Reserved IP Ranges".value') \
-              --arg pks_services_dns $(cat terraform-state/terraform.tfstate | jq -r '.modules[0].outputs."Services Network DNS".value') \
-              --arg pks_services_gateway $(cat terraform-state/terraform.tfstate | jq -r '.modules[0].outputs."Services Network Gateway".value')\
-              --arg pks_services_availability_zones $(cat terraform-state/terraform.tfstate | jq -r '.modules[0].outputs."Availability Zones".value | join(",")') \
-              '
-              {
-                "icmp_checks_enabled": $icmp_checks_enabled,
-                "networks": [
-                  {
-                    "name": $pks_infrastructure_network_name,
-                    "service_network": false,
-                    "subnets": [
-                      {
-                        "iaas_identifier": $pks_infrastructure_iaas_identifier,
-                        "cidr": $pks_infrastructure_network_cidr,
-                        "reserved_ip_ranges": $pks_infrastructure_reserved_ip_ranges,
-                        "dns": $pks_infrastructure_dns,
-                        "gateway": $pks_infrastructure_gateway,
-                        "availability_zones": ($pks_infrastructure_availability_zones | split(","))
-                      }
-                    ]
-                  },
-                  {
-                    "name": $pks_main_network_name,
-                    "service_network": false,
-                    "subnets": [
-                      {
-                        "iaas_identifier": $pks_main_iaas_identifier,
-                        "cidr": $pks_main_network_cidr,
-                        "reserved_ip_ranges": $pks_main_reserved_ip_ranges,
-                        "dns": $pks_main_dns,
-                        "gateway": $pks_main_gateway,
-                        "availability_zones": ($pks_main_availability_zones | split(","))
-                      }
-                    ]
-                  },
-                  {
-                    "name": $pks_services_network_name,
-                    "service_network": true,
-                    "subnets": [
-                      {
-                        "iaas_identifier": $pks_services_iaas_identifier,
-                        "cidr": $pks_services_network_cidr,
-                        "reserved_ip_ranges": $pks_services_reserved_ip_ranges,
-                        "dns": $pks_services_dns,
-                        "gateway": $pks_services_gateway,
-                        "availability_zones": ($pks_services_availability_zones | split(","))
-                      }
-                    ]
-                  }
-                ]
-              }'
-          )
-
-          network_assignment=$(
-            jq -n \
-              --arg availability_zones $(cat terraform-state/terraform.tfstate | jq -r '.modules[0].outputs."Availability Zones".value | join(",")') \
-              --arg network $(cat terraform-state/terraform.tfstate | jq -r '.modules[0].outputs."Infrastructure Network Name".value') \
-              '
-              {
-                "singleton_availability_zone": ($availability_zones | split(",") | .[0]),
-                "network": $network
-              }'
-          )
-
-          security_configuration=$(
-            jq -n \
-              --arg trusted_certificates "$OPS_MGR_TRUSTED_CERTS" \
-              '
-              {
-                "trusted_certificates": $trusted_certificates,
-                "vm_password_type": "generate"
-              }'
-          )
-
-          resource_configuration=$(cat <<-EOF
-          {
-            "director": {
-              "instance_type": {
-                "id": "${DIRECTOR_VM_TYPE}"
-              },
-              "internet_connected": ${INTERNET_CONNECTED}
-            },
-            "compilation": {
-              "internet_connected": ${INTERNET_CONNECTED}
-            }
-          }
-          EOF
-          )
-
-          echo "Configuring IaaS and Director..."
-
-          om-linux \
-            --target https://$OPSMAN_DOMAIN_OR_IP_ADDRESS \
-            --skip-ssl-validation \
-            --username "$OPS_MGR_USR" \
-            --password "$OPS_MGR_PWD" \
-            configure-bosh \
-            --iaas-configuration "$iaas_configuration" \
-            --director-configuration "$director_config" \
-            --az-configuration "$az_configuration" \
-            --networks-configuration "$network_configuration" \
-            --network-assignment "$network_assignment" \
-            --security-configuration "$security_configuration" \
-            --resource-configuration "$resource_configuration" \
+          om --target https://$OPSMAN_DOMAIN_OR_IP_ADDRESS \
+             --skip-ssl-validation \
+             --username "$OPS_MGR_USR" \
+             --password "$OPS_MGR_PWD" \
+             configure-director \
+             --config <(cat <<EOF
+          ---
+          iaas-configuration:
+            project: $GCP_PROJECT_ID
+            default_deployment_tag: $GCP_RESOURCE_PREFIX
+            auth_json: |
+              $GCP_SERVICE_ACCOUNT_KEY
+          director-configuration:
+            ntp_servers_string: metadata.google.internal
+            resurrector_enabled: true
+            post_deploy_enabled: true
+            database_type: internal
+            blobstore_type: local
+          az-configuration: $AVAILABILITY_ZONES
+          networks-configuration:
+            icmp_checks_enabled: false
+            networks:
+            - name: $PKS_INFRASTRUCTURE_NETWORK_NAME
+              service_network: false
+              subnets:
+              - iaas_identifier: $PKS_INFRASTRUCTURE_IAAS_IDENTIFIER
+                cidr: $PKS_INFRASTRUCTURE_NETWORK_CIDR
+                reserved_ip_ranges: $PKS_INFRASTRUCTURE_RESERVED_IP_RANGES
+                dns: $PKS_INFRASTRUCTURE_DNS
+                gateway: $PKS_INFRASTRUCTURE_GATEWAY
+                availability_zone_names: $PKS_INFRASTRUCTURE_AVAILABILITY_ZONES
+            - name: $PKS_MAIN_NETWORK_NAME
+              service_network: false
+              subnets:
+              - iaas_identifier: $PKS_MAIN_IAAS_IDENTIFIER
+                cidr: $PKS_MAIN_NETWORK_CIDR
+                reserved_ip_ranges: $PKS_MAIN_RESERVED_IP_RANGES
+                dns: $PKS_MAIN_DNS
+                gateway: $PKS_MAIN_GATEWAY
+                availability_zone_names: $PKS_MAIN_AVAILABILITY_ZONES
+            - name: $PKS_SERVICES_NETWORK_NAME
+              service_network: true
+              subnets:
+              - iaas_identifier: $PKS_SERVICES_IAAS_IDENTIFIER
+                cidr: $PKS_SERVICES_NETWORK_CIDR
+                reserved_ip_ranges: $PKS_SERVICES_RESERVED_IP_RANGES
+                dns: $PKS_SERVICES_DNS
+                gateway: $PKS_SERVICES_GATEWAY
+                availability_zone_names: $PKS_SERVICES_AVAILABILITY_ZONES
+          network-assignment:
+            network:
+              name: $SINGLETON_AVAILABILITY_NETWORK
+            singleton_availability_zone:
+              name: $SINGLETON_AVAILABILITY_ZONE
+          security-configuration:
+            trusted_certificates: "$OPS_MGR_TRUSTED_CERTS"
+            vm_password_type: generate
+          resource-configuration:
+            director:
+              instance_type:
+                id: $DIRECTOR_VM_TYPE
+              internet_connected: $INTERNET_CONNECTED
+            compilation:
+              instance_type:
+                id: large.cpu
+              internet_connected: $INTERNET_CONNECTED
+          EOF)
 
 - name: deploy-director
   build_logs_to_retain: 5
@@ -394,6 +346,7 @@ jobs:
         type: docker-image
         source:
           repository: pcfnorm/rootfs
+          tag: 1.0.14
       outputs:
       - name: om
       run:
@@ -447,7 +400,6 @@ jobs:
           gcloud auth activate-service-account \
               --key-file service-account.json
           ZONE=`gcloud compute instances list --filter name:${PKS_ENV_PREFIX}-ops-manager | awk 'NR>1 {print $2}'`
-          
           set +e
           LS=`gcloud compute ssh ubuntu@${PKS_ENV_PREFIX}-ops-manager \
               --zone ${ZONE} \
@@ -534,6 +486,7 @@ jobs:
         type: docker-image
         source:
           repository: pcfnorm/rootfs
+          tag: 1.0.14
       inputs:
       - name: terraform-state
       - name: pks
@@ -543,166 +496,171 @@ jobs:
         - -c
         - |
           set -eu
+          cp /usr/local/bin/om-linux /usr/local/bin/om
+          cp terraform-state/terraform.tfstate ./
+          
+          OPSMAN_DOMAIN_OR_IP_ADDRESS=$(cat terraform.tfstate | jq -r '.modules[0].resources."google_compute_address.ops-manager-public-ip".primary.attributes.address')
+          RELEASE_ID=`cat pks/metadata.json | python -c 'import json,sys;print json.load(sys.stdin)["Release"]["ID"]'`
+          PRODUCT_ID=`cat pks/metadata.json | python -c 'import json,sys;print filter(lambda x:x["AWSObjectKey"].endswith(".pivotal"),json.load(sys.stdin)["ProductFiles"])[0]["ID"]'`
+          AWS_OBJECT_KEY=`cat pks/metadata.json | python -c 'import json,sys;print filter(lambda x:x["AWSObjectKey"].endswith(".pivotal"),json.load(sys.stdin)["ProductFiles"])[0]["AWSObjectKey"]'`
+          FILENAME=`basename ${AWS_OBJECT_KEY}`
+          PRODUCT_NAME=`basename $FILENAME .pivotal | python -c 'print("-".join(raw_input().split("-")[:-2]))'` # pivotal-container-service
+          PRODUCT_VERSION=`basename $FILENAME .pivotal | python -c 'print("-".join(raw_input().split("-")[-2:]))'` # 1.0.4-build.5
 
           om_generate_cert() (
             set -eu
             local domains="$1"
-
             local data=$(echo $domains | jq --raw-input -c '{"domains": (. | split(" "))}')
-
             local response=$(
-              om-linux \
-                --target "https://${OPSMAN_DOMAIN_OR_IP_ADDRESS}" \
-                --username "$OPS_MGR_USR" \
-                --password "$OPS_MGR_PWD" \
-                --skip-ssl-validation \
-                curl \
-                --silent \
-                --path "/api/v0/certificates/generate" \
-                -x POST \
-                -d $data
+              om --target "https://${OPSMAN_DOMAIN_OR_IP_ADDRESS}" \
+                 --username "$OPS_MGR_USR" \
+                 --password "$OPS_MGR_PWD" \
+                 --skip-ssl-validation \
+                 curl \
+                 --silent \
+                 --path "/api/v0/certificates/generate" \
+                 -x POST \
+                 -d $data
               )
-
-            echo "$response"
+              echo "$response"
           )
 
-          OPSMAN_DOMAIN_OR_IP_ADDRESS=$(cat terraform-state/terraform.tfstate | jq -r '.modules[0].resources."google_compute_address.ops-manager-public-ip".primary.attributes.address')
-          PKS_API_IP=$(cat terraform-state/terraform.tfstate | jq -r '.modules[0].resources."google_compute_address.pks-api-ip".primary.attributes.address')
+          PKS_API_IP=$(cat terraform.tfstate | jq -r '.modules[0].resources."google_compute_address.pks-api-ip".primary.attributes.address')
           PKS_DOMAIN=$(echo $PKS_API_IP | tr '.' '-').sslip.io
-          AWS_OBJECT_KEY=`cat pks/metadata.json | python -c 'import json,sys;print filter(lambda x:x["AWSObjectKey"].endswith(".pivotal"),json.load(sys.stdin)["ProductFiles"])[0]["AWSObjectKey"]'`
-          FILENAME=`basename ${AWS_OBJECT_KEY}`
-          PRODUCT_NAME=`basename $FILENAME .pivotal | python -c 'print("-".join(raw_input().split("-")[:-2]))'`
-          AUTH_JSON=$(cat terraform-state/terraform.tfstate | jq -r .modules[0].outputs.AuthJSON.value)
+          AUTH_JSON=$(cat terraform.tfstate | jq -r .modules[0].outputs.AuthJSON.value)
           GCP_PROJECT_ID=$(echo $AUTH_JSON | jq -r .project_id)
-          GCP_NETWORK=$(cat terraform-state/terraform.tfstate | jq -r '.modules[0].resources."google_compute_network.pks-network".primary.id')
-          GCP_RESOURCE_PREFIX=$(cat terraform-state/terraform.tfstate | jq -r '.modules[0].outputs."Default Deployment Tag".value')
-
-          availability_zones=$(cat terraform-state/terraform.tfstate | jq -r '.modules[0].outputs."Availability Zones".value | map({name: .})')
-          az_configuration="{\"availability_zones\": $availability_zones}"
-
-          configuration_network=$(
-            jq -n \
-              --arg pks_main_network_name $(cat terraform-state/terraform.tfstate | jq -r '.modules[0].outputs."Main Network Name".value') \
-              --arg pks_services_network_name $(cat terraform-state/terraform.tfstate | jq -r '.modules[0].outputs."Service Network Name".value') \
-              --arg availability_zones $(cat terraform-state/terraform.tfstate | jq -r '.modules[0].outputs."Availability Zones".value | join(",")') \
-              '
-              {
-                "network": {
-                  "name": $pks_main_network_name
-                },
-                "service_network": {
-                  "name": $pks_services_network_name
-                  },
-                "singleton_availability_zone": {
-                  "name": ($availability_zones | split(",") | .[1]),
-                },
-                "other_availability_zones": ($availability_zones | split(",") | map({name: .}))
-              }'
-          )
-
-          certificates=$(om_generate_cert "*.sslip.io *.x.sslip.io")
-          cert_pem=`echo $certificates | jq -r '.certificate'`
-          key_pem=`echo $certificates | jq -r '.key'`
-
-          configuration_properties=$(
-            jq -n \
-              --arg pks_main_network_name $(cat terraform-state/terraform.tfstate | jq -r '.modules[0].outputs."Main Network Name".value') \
-              --arg pks_services_network_name $(cat terraform-state/terraform.tfstate | jq -r '.modules[0].outputs."Service Network Name".value') \
-              --arg availability_zones $(cat terraform-state/terraform.tfstate | jq -r '.modules[0].outputs."Availability Zones".value | join(",")') \
-              --arg cert_pem "$cert_pem" \
-              --arg key_pem "$key_pem" \
-              --arg gcp_project_id ${GCP_PROJECT_ID} \
-              --arg gcp_network ${GCP_NETWORK} \
-              --arg gcp_service_account_key "${AUTH_JSON}" \
-              --arg uaa_url "api-${PKS_DOMAIN}" \
-              '
-              {
-                ".pivotal-container-service.pks_tls": { 
-                  "value": {
-                    "cert_pem": $cert_pem,
-                    "private_key_pem": $key_pem
-                  }
-                },
-                ".properties.plan1_selector": {
-                  "value": "Plan Active"
-                },
-                ".properties.plan1_selector.active.az_placement": {
-                  "value": ($availability_zones | split(",") | .[2])
-                },
-                ".properties.plan1_selector.active.master_vm_type": {
-                  "value": "micro"
-                },
-                ".properties.plan1_selector.active.worker_vm_type": {
-                  "value": "medium"
-                },
-                ".properties.plan1_selector.active.worker_instances": {
-                  "value": 1
-                },
-                ".properties.plan2_selector": {
-                  "value": "Plan Active"
-                },
-                ".properties.plan2_selector.active.az_placement": {
-                  "value": ($availability_zones | split(",") | .[0])
-                },
-                ".properties.plan2_selector.active.master_vm_type": {
-                  "value": "small"
-                },
-                ".properties.plan2_selector.active.worker_vm_type": {
-                  "value": "medium"
-                },
-                ".properties.plan2_selector.active.worker_instances": {
-                  "value": 3
-                },
-                ".properties.plan3_selector": {
-                  "value": "Plan Inactive"
-                },
-                ".properties.cloud_provider": {
-                  "value": "GCP"
-                },
-                ".properties.cloud_provider.gcp.project_id": {
-                  "value": $gcp_project_id
-                },
-                ".properties.cloud_provider.gcp.network": {
-                  "value": $gcp_network
-                },
-                ".properties.cloud_provider.gcp.service_key": {
-                  "value": $gcp_service_account_key
-                },
-                ".properties.uaa_url": {
-                  "value": $uaa_url
-                }
-              }'
-          )
-
+          GCP_NETWORK=$(cat terraform.tfstate | jq -r '.modules[0].resources."google_compute_network.pks-network".primary.id')
+          GCP_RESOURCE_PREFIX=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Default Deployment Tag".value')
+          PKS_MAIN_NETWORK_NAME=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Main Network Name".value')
+          PKS_SERVICES_NETWORK_NAME=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Service Network Name".value')
+          SINGLETON_AVAILABILITY_ZONE=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Availability Zones".value | .[0]')
+          AVAILABILITY_ZONES=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Availability Zones".value | map({name: .})' | tr -d '\n' | tr -d '"')
+          CERTIFICATES=$(om_generate_cert "*.sslip.io *.x.sslip.io")
+          CERT_PEM=`echo $CERTIFICATES | jq -r '.certificate' | sed 's/^/        /'`
+          KEY_PEM=`echo $CERTIFICATES | jq -r '.key' | sed 's/^/        /'`
+          GCP_MASTER_SERVICE_ACCOUNT_KEY=$(cat terraform.tfstate | jq -r '.modules[0].outputs.pks_master_node_service_account_key.value' | sed 's/^/      /')
+          GCP_WORKER_SERVICE_ACCOUNT_KEY=$(cat terraform.tfstate | jq -r '.modules[0].outputs.pks_worker_node_service_account_key.value' | sed 's/^/      /')
+          UAA_URL=api-${PKS_DOMAIN}
           LB_NAME="tcp:${GCP_RESOURCE_PREFIX}-pks-api"
-          configuration_resources=$(cat <<-EOF
-          {
-            "pivotal-container-service": {
-              "instance_type": {
-                "id": "micro"
-              },
-              "elb_names": ["${LB_NAME}"],
-              "internet_connected": ${INTERNET_CONNECTED}
-            }
-          }
-          EOF
-          )
 
-          echo "Configuring PKS Tile ..."
-
-          om-linux \
-            --target "https://${OPSMAN_DOMAIN_OR_IP_ADDRESS}" \
-            --username "$OPS_MGR_USR" \
-            --password "$OPS_MGR_PWD" \
-            --skip-ssl-validation \
-            configure-product \
-            --product-name "${PRODUCT_NAME}" \
-            --product-network "${configuration_network}" \
-            --product-properties "${configuration_properties}" \
-            --product-resources "${configuration_resources}" \
+          om --target "https://${OPSMAN_DOMAIN_OR_IP_ADDRESS}" \
+             --username "$OPS_MGR_USR" \
+             --password "$OPS_MGR_PWD" \
+             --skip-ssl-validation \
+             configure-product \
+             --product-name "${PRODUCT_NAME}" \
+             --config <(cat <<EOF
+          ---
+          product-properties:
+            .pivotal-container-service.pks_tls:
+              value:
+                cert_pem: |
+          $CERT_PEM
+                private_key_pem: |
+          $KEY_PEM
+            .properties.plan1_selector:
+              value: Plan Active
+            .properties.plan1_selector.active.az_placement:
+              value: $SINGLETON_AVAILABILITY_ZONE
+            .properties.plan1_selector.active.master_vm_type:
+              value: micro
+            .properties.plan1_selector.active.worker_vm_type:
+              value: medium
+            .properties.plan1_selector.active.persistent_disk_type:
+              value: "51200"
+            .properties.plan1_selector.active.worker_instances:
+              value: 1
+            .properties.plan2_selector:
+              value: Plan Active
+            .properties.plan2_selector.active.az_placement:
+              value: $SINGLETON_AVAILABILITY_ZONE
+            .properties.plan2_selector.active.master_vm_type:
+              value: small
+            .properties.plan2_selector.active.worker_vm_type:
+              value: large
+            .properties.plan2_selector.active.persistent_disk_type:
+              value: "102400"
+            .properties.plan2_selector.active.worker_instances:
+              value: 3
+            .properties.plan3_selector:
+              value: Plan Inactive
+            .properties.cloud_provider:
+              value: GCP
+            .properties.cloud_provider.gcp.project_id:
+              value: $GCP_PROJECT_ID
+            .properties.cloud_provider.gcp.network:
+              value: $GCP_NETWORK
+            .properties.cloud_provider.gcp.master_service_account_key:
+              value: |
+          $GCP_MASTER_SERVICE_ACCOUNT_KEY
+            .properties.cloud_provider.gcp.worker_service_account_key:
+              value: |
+          $GCP_WORKER_SERVICE_ACCOUNT_KEY
+            .properties.uaa_url:
+              value: $UAA_URL
+          network-properties:
+            network:
+              name: $PKS_MAIN_NETWORK_NAME
+            service_network:
+              name: $PKS_SERVICES_NETWORK_NAME
+            other_availability_zones: $AVAILABILITY_ZONES
+            singleton_availability_zone:
+              name: $SINGLETON_AVAILABILITY_ZONE
+          resource-config:
+            pivotal-container-service:
+              instance_type:
+                id: micro
+              elb_names:
+              - $LB_NAME
+              internet_connected: $INTERNET_CONNECTED
+          EOF)
 
           echo "PKS API: https://api-${PKS_DOMAIN}:9021"
           echo "UAA: https://api-${PKS_DOMAIN}:8443"
+
+- name: upload-stemcell
+  build_logs_to_retain: 5
+  plan:
+  - aggregate:
+    - get: terraform-state
+      passed:
+      - upload-pks
+      trigger: true
+    - get: stemcell
+      params:
+        globs: 
+        - "light-bosh-stemcell-3468\\.*-google-kvm-ubuntu-trusty-go_agent\\.tgz"
+      trigger: true
+  - task: upload-stemcell
+    params:
+      OPS_MGR_USR: ((ops_mgr_usr))
+      OPS_MGR_PWD: ((ops_mgr_pwd))
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: pcfnorm/rootfs
+          tag: 1.0.14
+      inputs:
+      - name: terraform-state
+      - name: stemcell
+      run:
+        path: bash
+        args: 
+        - -c
+        - |
+          set -eu
+          cp /usr/local/bin/om-linux /usr/local/bin/om
+          cp terraform-state/terraform.tfstate ./
+
+          OPSMAN_DOMAIN_OR_IP_ADDRESS=$(cat terraform.tfstate | jq -r '.modules[0].resources."google_compute_address.ops-manager-public-ip".primary.attributes.address')
+          om --target https://${OPSMAN_DOMAIN_OR_IP_ADDRESS} -k \
+              -u ${OPS_MGR_USR} \
+              -p ${OPS_MGR_PWD} \
+              --request-timeout 3600 \
+              upload-stemcell \
+              -s stemcell/light-bosh-stemcell-3468.*-google-kvm-ubuntu-trusty-go_agent.tgz
 
 - name: deploy-pks
   build_logs_to_retain: 5
@@ -711,6 +669,7 @@ jobs:
     - get: terraform-state
       passed:
       - config-pks
+      - upload-stemcell
       trigger: true
     - get: pks
       passed:
@@ -745,6 +704,7 @@ jobs:
         type: docker-image
         source:
           repository: pcfnorm/rootfs
+          tag: 1.0.14
       inputs:
       - name: terraform-state
       run:
@@ -861,6 +821,7 @@ jobs:
         type: docker-image
         source:
           repository: pcfnorm/rootfs
+          tag: 1.0.14
       inputs:
       - name: terraform-state
       run:
@@ -945,6 +906,7 @@ params:
       type: docker-image
       source:
         repository: pcfnorm/rootfs
+        tag: 1.0.14
     inputs:
     - name: terraform-state
     run:
