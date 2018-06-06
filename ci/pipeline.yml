@@ -26,13 +26,13 @@ resources:
   source:
     api_token: ((pivnet_api_token))
     product_slug: pivotal-container-service
-    product_version: 1\.0\.*
+    product_version: 1\.1\..*
 - name: stemcell
   type: pivnet
   source:
     api_token: ((pivnet_api_token))
     product_slug: stemcells
-    product_version: 3468\.*
+    product_version: 3468\..*
 
 groups:
 - name: pks
@@ -319,7 +319,7 @@ jobs:
     - get: terraform-state
       passed:
       - config-director
-      trigger: true
+      # trigger: true
   - task: apply-changes
     params:
       OPS_MGR_USR: ((ops_mgr_usr))
@@ -333,7 +333,8 @@ jobs:
   - aggregate:
     - get: terraform-state
       passed:
-      - deploy-director
+      # - deploy-director
+      - config-director
       trigger: true
     - get: pks
       params:
@@ -535,21 +536,17 @@ jobs:
           PKS_SERVICES_NETWORK_NAME=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Service Network Name".value')
           SINGLETON_AVAILABILITY_ZONE=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Availability Zones".value | .[0]')
           AVAILABILITY_ZONES=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Availability Zones".value | map({name: .})' | tr -d '\n' | tr -d '"')
+          AVAILABILITY_ZONE_NAMES=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Availability Zones".value' | tr -d '\n' | tr -d '"')
           CERTIFICATES=$(om_generate_cert "*.sslip.io *.x.sslip.io")
           CERT_PEM=`echo $CERTIFICATES | jq -r '.certificate' | sed 's/^/        /'`
           KEY_PEM=`echo $CERTIFICATES | jq -r '.key' | sed 's/^/        /'`
           GCP_MASTER_SERVICE_ACCOUNT_KEY=$(cat terraform.tfstate | jq -r '.modules[0].outputs.pks_master_node_service_account_key.value' | sed 's/^/      /')
           GCP_WORKER_SERVICE_ACCOUNT_KEY=$(cat terraform.tfstate | jq -r '.modules[0].outputs.pks_worker_node_service_account_key.value' | sed 's/^/      /')
+          API_HOSTNAME=api-${PKS_DOMAIN}
           UAA_URL=api-${PKS_DOMAIN}
           LB_NAME="tcp:${GCP_RESOURCE_PREFIX}-pks-api"
-
-          om --target "https://${OPSMAN_DOMAIN_OR_IP_ADDRESS}" \
-             --username "$OPS_MGR_USR" \
-             --password "$OPS_MGR_PWD" \
-             --skip-ssl-validation \
-             configure-product \
-             --product-name "${PRODUCT_NAME}" \
-             --config <(cat <<EOF
+          
+          cat <<EOF > config.yml
           ---
           product-properties:
             .pivotal-container-service.pks_tls:
@@ -558,27 +555,33 @@ jobs:
           $CERT_PEM
                 private_key_pem: |
           $KEY_PEM
+            .properties.pks_api_hostname:
+              value: $API_HOSTNAME
             .properties.plan1_selector:
               value: Plan Active
-            .properties.plan1_selector.active.az_placement:
-              value: $SINGLETON_AVAILABILITY_ZONE
+            .properties.plan1_selector.active.master_az_placement:
+              value: $AVAILABILITY_ZONE_NAMES
             .properties.plan1_selector.active.master_vm_type:
               value: micro
+            .properties.plan1_selector.active.worker_az_placement:
+              value: $AVAILABILITY_ZONE_NAMES
             .properties.plan1_selector.active.worker_vm_type:
               value: medium
-            .properties.plan1_selector.active.persistent_disk_type:
+            .properties.plan1_selector.active.worker_persistent_disk_type:
               value: "51200"
             .properties.plan1_selector.active.worker_instances:
               value: 1
             .properties.plan2_selector:
               value: Plan Active
-            .properties.plan2_selector.active.az_placement:
-              value: $SINGLETON_AVAILABILITY_ZONE
+            .properties.plan2_selector.active.master_az_placement:
+              value: $AVAILABILITY_ZONE_NAMES
             .properties.plan2_selector.active.master_vm_type:
               value: small
+            .properties.plan2_selector.active.worker_az_placement:
+              value: $AVAILABILITY_ZONE_NAMES
             .properties.plan2_selector.active.worker_vm_type:
               value: large
-            .properties.plan2_selector.active.persistent_disk_type:
+            .properties.plan2_selector.active.worker_persistent_disk_type:
               value: "102400"
             .properties.plan2_selector.active.worker_instances:
               value: 3
@@ -596,8 +599,9 @@ jobs:
             .properties.cloud_provider.gcp.worker_service_account_key:
               value: |
           $GCP_WORKER_SERVICE_ACCOUNT_KEY
-            .properties.uaa_url:
-              value: $UAA_URL
+            .properties.telemetry_selector:
+              value: disabled        
+
           network-properties:
             network:
               name: $PKS_MAIN_NETWORK_NAME
@@ -613,7 +617,17 @@ jobs:
               elb_names:
               - $LB_NAME
               internet_connected: $INTERNET_CONNECTED
-          EOF)
+          EOF
+
+          cat config.yml
+
+          om --target "https://${OPSMAN_DOMAIN_OR_IP_ADDRESS}" \
+             --username "$OPS_MGR_USR" \
+             --password "$OPS_MGR_PWD" \
+             --skip-ssl-validation \
+             configure-product \
+             --product-name "${PRODUCT_NAME}" \
+             --config config.yml
 
           echo "PKS API: https://api-${PKS_DOMAIN}:9021"
           echo "UAA: https://api-${PKS_DOMAIN}:8443"
@@ -739,7 +753,7 @@ jobs:
                 --skip-ssl-validation \
                 curl \
                 --silent \
-                --path "/api/v0/deployed/products/${GUID}/credentials/.properties.uaa_admin_secret" \
+                --path "/api/v0/deployed/products/${GUID}/credentials/.properties.pks_uaa_management_admin_client" \
                 -x GET \
                 | jq -r '.credential.value.secret'
           )
