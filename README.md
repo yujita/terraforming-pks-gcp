@@ -51,7 +51,7 @@ service_account_key = <<SERVICE_ACCOUNT_KEY
 }
 SERVICE_ACCOUNT_KEY
 nat_machine_type = "n1-standard-4"
-opsman_image_url = "https://storage.googleapis.com/ops-manager-eu/pcf-gcp-2.0-build.249.tar.gz"
+opsman_image_url = "https://storage.googleapis.com/ops-manager-us/pcf-gcp-2.5.2-build.172.tar.gz"
 opsman_machine_type = "n1-standard-2"
 ```
 
