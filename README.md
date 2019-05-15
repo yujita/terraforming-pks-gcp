@@ -23,25 +23,28 @@ gcloud iam service-accounts create ${ACCOUNT_NAME} --display-name "PKS Account"
 gcloud iam service-accounts keys create "terraform.key.json" --iam-account "${ACCOUNT_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
 gcloud projects add-iam-policy-binding ${PROJECT_ID} --member "serviceAccount:${ACCOUNT_NAME}@${PROJECT_ID}.iam.gserviceaccount.com" --role 'roles/owner'
 ```
+### Prep Environment Values
 
+export ENV_PREFIX="XXXXXXXXX"
+export OPS_IMAGE_URL="https://storage.googleapis.com/ops-manager-us/pcf-gcp-2.5.2-build.172.tar.gz"
 
 ### Var File
 
-Copy the stub content below into a terminal to make `terraform.tfvars`. Make sure it's  located in the root of this project.
+Copy the stub content below into a terminal to create `terraform.tfvars` file. Make sure it's located in the root of this project.
 These vars will be used when you run `terraform  apply`.
 You should fill in the stub values with the correct content.
 
 ```hcl
 cat << EOF > terraform.tfvars
-env_prefix = "my-pks-eu"
-project = "your-gcp-project"
+env_prefix = "${ENV_PREFIX}"
+project = "${PROJECT_ID}"
 region = "asia-northeast1"
 zones = ["asia-northeast1-a", "asia-northeast1-b", "asia-northeast1-c"]
 service_account_key = <<SERVICE_ACCOUNT_KEY
 $(cat ../terraform.key.json)
 SERVICE_ACCOUNT_KEY
 nat_machine_type = "n1-standard-4"
-opsman_image_url = "https://storage.googleapis.com/ops-manager-us/pcf-gcp-2.5.2-build.172.tar.gz"
+opsman_image_url = "${OPS_IMAGE_URL}"
 opsman_machine_type = "n1-standard-2"
 EOF
 ```
