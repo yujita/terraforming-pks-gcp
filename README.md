@@ -27,7 +27,7 @@ gcloud projects add-iam-policy-binding ${PROJECT_ID} --member "serviceAccount:${
 
 ### Var File
 
-Copy the stub content below into a file called `terraform.tfvars` and put it in the root of this project.
+Copy the stub content below into a terminal to make `terraform.tfvars`. Make sure it's  located in the root of this project.
 These vars will be used when you run `terraform  apply`.
 You should fill in the stub values with the correct content.
 
