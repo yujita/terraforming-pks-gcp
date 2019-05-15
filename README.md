@@ -17,8 +17,8 @@ brew install terraform
 You will need a key file for your service account to allow terraform to deploy resources. If you don't have one, you can create a service account and a key for it:
 
 ```
-export PROJECT_ID=XXXXXXXX
-export ACCOUNT_NAME=YYYYYYYY
+export PROJECT_ID="XXXXXXXX"
+export ACCOUNT_NAME="YYYYYYYY"
 gcloud iam service-accounts create ${ACCOUNT_NAME} --display-name "PKS Account"
 gcloud iam service-accounts keys create "terraform.key.json" --iam-account "${ACCOUNT_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
 gcloud projects add-iam-policy-binding ${PROJECT_ID} --member "serviceAccount:${ACCOUNT_NAME}@${PROJECT_ID}.iam.gserviceaccount.com" --role 'roles/owner'
@@ -32,27 +32,18 @@ These vars will be used when you run `terraform  apply`.
 You should fill in the stub values with the correct content.
 
 ```hcl
+cat << EOF > terraform.tfvars
 env_prefix = "my-pks-eu"
 project = "your-gcp-project"
-region = "europe-west1"
-zones = ["europe-west1-b", "europe-west1-c", "europe-west1-d"]
+region = "asia-northeast1"
+zones = ["asia-northeast1-a", "asia-northeast1-b", "asia-northeast1-c"]
 service_account_key = <<SERVICE_ACCOUNT_KEY
-{
-  "type": "service_account",
-  "project_id": "your-gcp-project",
-  "private_key_id": "another-gcp-private-key",
-  "private_key": "-----BEGIN PRIVATE KEY-----another gcp private key-----END PRIVATE KEY-----\n",
-  "client_email": "something@example.com",
-  "client_id": "11111111111111",
-  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-  "token_uri": "https://accounts.google.com/o/oauth2/token",
-  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/"
-}
+$(cat ../terraform.key.json)
 SERVICE_ACCOUNT_KEY
 nat_machine_type = "n1-standard-4"
 opsman_image_url = "https://storage.googleapis.com/ops-manager-us/pcf-gcp-2.5.2-build.172.tar.gz"
 opsman_machine_type = "n1-standard-2"
+EOF
 ```
 
 ### Var Details
