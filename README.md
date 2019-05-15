@@ -25,7 +25,7 @@ gcloud projects add-iam-policy-binding ${PROJECT_ID} --member "serviceAccount:${
 ```
 ### Prep Environment Values
 
-export ENV_PREFIX="XXXXXXXXX"
+export ENV_PREFIX="XXXXXXXXX" # up to you
 export OPS_IMAGE_URL="https://storage.googleapis.com/ops-manager-us/pcf-gcp-2.5.2-build.172.tar.gz"
 
 ### Var File
@@ -47,6 +47,9 @@ nat_machine_type = "n1-standard-4"
 opsman_image_url = "${OPS_IMAGE_URL}"
 opsman_machine_type = "n1-standard-2"
 EOF
+```
+```
+cat terraform.tfvars # confirm all values correctly set
 ```
 
 ### Var Details
