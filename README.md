@@ -41,7 +41,7 @@ project = "${PROJECT_ID}"
 region = "asia-northeast1"
 zones = ["asia-northeast1-a", "asia-northeast1-b", "asia-northeast1-c"]
 service_account_key = <<SERVICE_ACCOUNT_KEY
-$(cat ../terraform.key.json)
+$(cat ./terraform.key.json)
 SERVICE_ACCOUNT_KEY
 nat_machine_type = "n1-standard-4"
 opsman_image_url = "${OPS_IMAGE_URL}"
