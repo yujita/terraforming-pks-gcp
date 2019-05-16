@@ -94,7 +94,7 @@ terraform destroy
 
 
 # Deploying BOSH Director
-### Install om CLI
+### Install om CLI on Your PC
 For Mac:
 ```bash
 wget -q -O om https://github.com/pivotal-cf/om/releases/download/0.37.0/om-darwin
@@ -108,7 +108,7 @@ chmod +x om
 sudo mv om /usr/local/bin/
 ```
 
-### Set Up Admin User
+### Set Up Admin User for Ops Manager
 ```bash
 OPS_MGR_USR=ops-admin
 OPS_MGR_PWD=ops-password
@@ -132,7 +132,7 @@ configuration complete
 Access `https://${OPSMAN_DOMAIN_OR_IP_ADDRESS}` from a web browser.
 
 ### Configure Ops Manager
-Create `config-director.yml`.
+Create a config file: `config-director.yml`.
 ```bash
 DIRECTOR_VM_TYPE=large.disk
 INTERNET_CONNECTED=true
@@ -229,7 +229,7 @@ resource-configuration:
     internet_connected: $INTERNET_CONNECTED
 EOF
 ```
-Configure the Ops Manager with `config-pks.yml`.
+Configure the Ops Manager with `config-director.yml`.
 ```bash
 om --target https://$OPSMAN_DOMAIN_OR_IP_ADDRESS \
    --skip-ssl-validation \
@@ -369,7 +369,7 @@ finished upload
 ```
 
 ### Configuring PKS Tile
-Copy the content below into a terminal to create `config-pks.yml` file. Make sure it's located in the root of this project.
+Create a config file: `config-pks.yml`. Make sure it's located in the root of this project.
 You should fill in the stub values with the correct content.
 ```bash
 om_generate_cert() (
@@ -654,8 +654,7 @@ resource-config:
     internet_connected: $INTERNET_CONNECTED
 EOF
 ```
-
-Copy the content below into a terminal to apply `config-pks.yml` to the Ops Manager.
+Configure the PKS Tile with `config-pks.yml`.
 ```bash
 om --target "https://${OPSMAN_DOMAIN_OR_IP_ADDRESS}" \
    --username "$OPS_MGR_USR" \
@@ -665,3 +664,13 @@ om --target "https://${OPSMAN_DOMAIN_OR_IP_ADDRESS}" \
    --product-name "${PRODUCT_NAME}" \
    --config config-pks.yml
 ```
+### Apply Changes
+`
+OPSMAN_DOMAIN_OR_IP_ADDRESS=$(cat terraform.tfstate | jq -r '.modules[0].resources."google_compute_address.ops-manager-public-ip".primary.attributes.address')
+om --target "https://${OPSMAN_DOMAIN_OR_IP_ADDRESS}" \
+   --skip-ssl-validation \
+   --username "${OPS_MGR_USR}" \
+   --password "${OPS_MGR_PWD}" \
+   apply-changes \
+   --ignore-warnings
+`
