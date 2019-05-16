@@ -94,21 +94,21 @@ terraform destroy
 
 
 # Deploying BOSH Director
-
-Install `om` CLI for Mac:
+### Install `om` CLI
+For Mac:
 ```bash
 wget -q -O om https://github.com/pivotal-cf/om/releases/download/0.37.0/om-darwin
 chmod +x om
 mv om /usr/local/bin/
 ```
-Install `om` CLI for Linux:
+For Linux:
 ```bash
 wget -q -O om https://github.com/pivotal-cf/om/releases/download/0.37.0/om-linux
 chmod +x om
 sudo mv om /usr/local/bin/
 ```
 
-Set up admin user:
+### Set up Admin User
 ```bash
 OPS_MGR_USR=ops-admin
 OPS_MGR_PWD=ops-password
@@ -129,6 +129,7 @@ waiting for configuration to complete...
 configuration complete
 ```
 
+### Configure Ops Manager
 Create `config-director.yml`
 ```bash
 DIRECTOR_VM_TYPE=large.disk
@@ -251,7 +252,7 @@ applying resource configuration for the following jobs:
   director
 finished configuring resource options for bosh tile
 ```
-Apply changes that made above:
+### Apply Changes
 ```bash
 OPSMAN_DOMAIN_OR_IP_ADDRESS=$(cat terraform.tfstate | jq -r '.modules[0].resources."google_compute_address.ops-manager-public-ip".primary.attributes.address')
 om --target "https://${OPSMAN_DOMAIN_OR_IP_ADDRESS}" \
