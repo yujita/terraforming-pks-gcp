@@ -368,7 +368,7 @@ beginning stemcell upload to Ops Manager
 finished upload
 ```
 
-### Configuring PKS Tile
+### Configure PKS Tile
 Create a config file: `config-pks.yml`. Make sure it's located in the root of this project.
 You should fill in the stub values with the correct content.
 ```bash
@@ -665,7 +665,7 @@ om --target "https://${OPSMAN_DOMAIN_OR_IP_ADDRESS}" \
    --config config-pks.yml
 ```
 ### Apply Changes
-`
+```bash
 OPSMAN_DOMAIN_OR_IP_ADDRESS=$(cat terraform.tfstate | jq -r '.modules[0].resources."google_compute_address.ops-manager-public-ip".primary.attributes.address')
 om --target "https://${OPSMAN_DOMAIN_OR_IP_ADDRESS}" \
    --skip-ssl-validation \
@@ -673,4 +673,110 @@ om --target "https://${OPSMAN_DOMAIN_OR_IP_ADDRESS}" \
    --password "${OPS_MGR_PWD}" \
    apply-changes \
    --ignore-warnings
-`
+```
+
+# Login to PKS API
+### Get API Endpoint
+```bash
+cat <<EOF
+PKS API: https://api-${PKS_DOMAIN}:9021
+UAA: https://api-${PKS_DOMAIN}:8443
+EOF
+```
+Output
+```bash
+PKS API: https://api-xxx-xxx-xxx-xxx.sslip.io:9021
+UAA: https://api-xxx-xxx-xxx-xxx.sslip.io:8443
+```
+### Get a Client Secret from PKS
+Get a client secret of the `admin` from Ops Manager.
+Access the Ops Manager from a web browser -> Click Pivotal Container Service Tile -> Click `Credentials Tab` -> Pks Uaa ManagementAdmin Client `Link to Credential`.
+Or you can get the client secret of the `admin` with the following command.
+```bash
+GUID=$(om \
+    --target "https://${OPSMAN_DOMAIN_OR_IP_ADDRESS}" \
+    --username "$OPS_MGR_USR" \
+    --password "$OPS_MGR_PWD" \
+    --skip-ssl-validation \
+    curl \
+    --silent \
+    --path "/api/v0/staged/products" \
+    -x GET \
+    | jq -r '.[] | select(.type == "pivotal-container-service") | .guid'
+)
+ADMIN_SECRET=$(om \
+    --target "https://${OPSMAN_DOMAIN_OR_IP_ADDRESS}" \
+    --username "$OPS_MGR_USR" \
+    --password "$OPS_MGR_PWD" \
+    --skip-ssl-validation \
+    curl \
+    --silent \
+    --path "/api/v0/deployed/products/${GUID}/credentials/.properties.pks_uaa_management_admin_client" \
+    -x GET \
+    | jq -r '.credential.value.secret'
+)
+```
+### Get an Access Token for Admin Client
+```bash
+UAA_URL=https://api-${PKS_DOMAIN}:8443
+
+gcloud compute ssh ubuntu@${PKS_ENV_PREFIX}-ops-manager \
+  --zone ${ZONE} \
+  --force-key-file-overwrite \
+  --strict-host-key-checking=no \
+  --quiet \
+  --command "uaac target ${UAA_URL} --skip-ssl-validation && uaac token client get admin -s ${ADMIN_SECRET}"
+```
+Output
+```bash
+Unknown key: Max-Age = 86400
+
+Successfully fetched token via client credentials grant.
+Target: https://api-xxx-xxx-xxx-xxx.sslip.io:8443
+Context: admin, from client admin
+```
+### Create a UAA user
+```bash
+PKS_USER=demo@example.com
+PKS_PASSWORD=password1234
+
+gcloud compute ssh ubuntu@${PKS_ENV_PREFIX}-ops-manager \
+  --zone ${ZONE} \
+  --force-key-file-overwrite \
+  --strict-host-key-checking=no \
+  --quiet \
+  --command "uaac user add ${PKS_USER} --emails ${PKS_USER} -p ${PKS_PASSWORD}"
+```
+Output
+```bash
+user account successfully added
+```
+### Configure Scope
+Configure scopes to make uaa users accessible to pks commands.
+There are two types of scopes.
+- `pks.clusters.admin` members have access to all the clusters.
+- `pks.clusters.manage` members have access only to the clusters that created themselves.
+Create `pks.clusters.admin`.
+```bash
+gcloud compute ssh ubuntu@${PKS_ENV_PREFIX}-ops-manager \
+  --zone ${ZONE} \
+  --force-key-file-overwrite \
+  --strict-host-key-checking=no \
+  --quiet \
+  --command "uaac member add pks.clusters.admin ${PKS_USER}"
+```
+Output
+```bash
+success
+```
+### Login to PKS API
+```bash
+PKS_API_URL=https://api-${PKS_DOMAIN}:9021
+
+pks login -k -a ${PKS_API_URL} -u ${PKS_USER} -p ${PKS_PASSWORD}
+```
+Output
+```bash
+API Endpoint: https://api-35-200-113-234.sslip.io:9021
+User: demo@example.com
+```
