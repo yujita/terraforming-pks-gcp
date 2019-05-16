@@ -50,7 +50,7 @@ opsman_machine_type = "n1-standard-2"
 EOF
 ```
 ```
-cat terraform.tfvars # confirm all values correctly set
+cat terraform.tfvars # Make sure all valuables are correctly set.
 ```
 
 ### Var Details
