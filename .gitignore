@@ -5,6 +5,6 @@ terraform.key.json
 *.tfvars
 plan
 credentials.yml
-
-# ignore opsman settings
+# for opsman settings
 config-director.yml
+config-pks.yml
