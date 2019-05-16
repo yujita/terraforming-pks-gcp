@@ -2,6 +2,11 @@
 
 Huge thanks to @pivotal-cf for [https://github.com/pivotal-cf/terraforming-gcp](https://github.com/pivotal-cf/terraforming-gcp). I have taken their work and upgraded it in accordance with current [PKS](https://docs.pivotal.io/runtimes/pks/1-0/gcp.html) documentation for GCP.
 
+## Version Information
+- Pivotal Cloud Foundry Operations Manager  : 2.5.2 build.172
+- Pivotal Container Service (PKS)           : 1.4.0 build.31
+- Terraform v0.11.13 + provider.google v2.6.0
+
 ## Prerequisites
 
 Your system needs the `gcloud` cli, as well as `terraform`:
@@ -16,10 +21,7 @@ You also need the following CLIs to deploy PKS with BOSH Director.
 - `om` CLI    : https://github.com/pivotal-cf/om/releases
 - `uaac` CLI  : https://github.com/cloudfoundry/cf-uaac
 
-### Version Information
-- Pivotal Cloud Foundry Operations Manager  : 2.5.2 build.172
-- Pivotal Container Service (PKS)           : 1.4.0 build.31
-- Terraform v0.11.13 + provider.google v2.6.0
+
 
 ### Service Account
 
@@ -93,19 +95,20 @@ terraform destroy
 
 # Deploying BOSH Director
 
-om CLI for Mac
+Install `om` CLI for Mac:
 ```bash
 wget -q -O om https://github.com/pivotal-cf/om/releases/download/0.37.0/om-darwin
 chmod +x om
 mv om /usr/local/bin/
 ```
-om CLI for Linux
+Install `om` CLI for Linux:
 ```bash
 wget -q -O om https://github.com/pivotal-cf/om/releases/download/0.37.0/om-linux
 chmod +x om
 sudo mv om /usr/local/bin/
 ```
 
+Set up admin user:
 ```bash
 OPS_MGR_USR=ops-admin
 OPS_MGR_PWD=ops-password
@@ -126,7 +129,7 @@ waiting for configuration to complete...
 configuration complete
 ```
 
-create `config-director.yml`
+Create `config-director.yml`
 ```bash
 DIRECTOR_VM_TYPE=large.disk
 INTERNET_CONNECTED=true
@@ -223,7 +226,7 @@ resource-configuration:
     internet_connected: $INTERNET_CONNECTED
 EOF
 ```
-apply `config-pks.yml`
+Apply `config-pks.yml`
 ```bash
 om --target https://$OPSMAN_DOMAIN_OR_IP_ADDRESS \
    --skip-ssl-validation \
@@ -248,8 +251,7 @@ applying resource configuration for the following jobs:
   director
 finished configuring resource options for bosh tile
 ```
-
-apply changes that made above
+Apply changes that made above:
 ```bash
 OPSMAN_DOMAIN_OR_IP_ADDRESS=$(cat terraform.tfstate | jq -r '.modules[0].resources."google_compute_address.ops-manager-public-ip".primary.attributes.address')
 om --target "https://${OPSMAN_DOMAIN_OR_IP_ADDRESS}" \
@@ -260,9 +262,10 @@ om --target "https://${OPSMAN_DOMAIN_OR_IP_ADDRESS}" \
    --ignore-warnings
 ```
 
-
+`https://${OPSMAN_DOMAIN_OR_IP_ADDRESS}`
 
 # Deploying PKS
+### Install `om` command
 ```bash
 FILENAME=pivotal-container-service-1.4.0-build.31.pivotal
 DOWNLOAD_URL=https://network.pivotal.io/api/v2/products/pivotal-container-service/releases/354903/product_files/366115/download
@@ -271,10 +274,10 @@ DOWNLOAD_URL=https://network.pivotal.io/api/v2/products/pivotal-container-servic
 REFRESH_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
+### Download PKS
 ```bash
 ACCESS_TOKEN=`curl -s https://network.pivotal.io/api/v2/authentication/access_tokens -d "{\"refresh_token\":\"${REFRESH_TOKEN}\"}" | jq -r .access_token`
 ```
-
 Download `pivotal-container-service-x.y.z-build.N.pivotal` on the Ops Mamager:
 ```bash
 PKS_ENV_PREFIX=${ACCOUNT_NAME}
@@ -287,7 +290,6 @@ gcloud compute ssh ubuntu@${PKS_ENV_PREFIX}-ops-manager \
     --quiet \
     --command "wget -q -O "${FILENAME}" --header='Authorization: Bearer ${ACCESS_TOKEN}' ${DOWNLOAD_URL}"
 ```
-
 Install `om` command on the Ops Manager:
 ```bash
 gcloud compute ssh ubuntu@${PKS_ENV_PREFIX}-ops-manager \
@@ -297,7 +299,6 @@ gcloud compute ssh ubuntu@${PKS_ENV_PREFIX}-ops-manager \
     --quiet \
     --command "wget -q -O om https://github.com/pivotal-cf/om/releases/download/0.37.0/om-linux && chmod +x om && sudo mv om /usr/local/bin/"
 ```
-
 Upload `pivotal-container-service-x.y.z-build.N.pivotal` to the Ops Manager:
 ```bash
 PRODUCT_NAME=`basename $FILENAME .pivotal | python -c 'print("-".join(raw_input().split("-")[:-2]))'` # pivotal-container-service
@@ -317,7 +318,7 @@ beginning product upload to Ops Manager
 2m28s elapsed, waiting for response from Ops Manager...
 finished upload
 ```
-Staging PKS Tile:
+### Staging PKS Tile
 ```bash
 gcloud compute ssh ubuntu@${PKS_ENV_PREFIX}-ops-manager \
   --zone ${ZONE} \
@@ -332,6 +333,7 @@ staging pivotal-container-service 1.0.4-build.5
 finished staging
 ```
 
+### Download Stemcell
 For ubuntu-xenial 250.25:
 ```
 SC_FILENAME=light-bosh-stemcell-250.25-google-kvm-ubuntu-xenial-go_agent.tgz
@@ -364,7 +366,7 @@ beginning stemcell upload to Ops Manager
 finished upload
 ```
 
-## Configuring PKS Tile
+### Configuring PKS Tile
 Copy the content below into a terminal to create `config-pks.yml` file. Make sure it's located in the root of this project.
 You should fill in the stub values with the correct content.
 ```bash
