@@ -81,23 +81,31 @@ terraform destroy
 ```
 
 
-# Configuring OpsMan
-PCF Ops Manager v2.5.2-build.172
-pivotal-container-service-1.4.0-build.31
+# Deploying PKS with Ops Manager
+## Prerequisites
+- `jq` cli: https://stedolan.github.io/jq/
+- `om` cli: https://github.com/pivotal-cf/om/releases
+- `uaac` cli: https://github.com/cloudfoundry/cf-uaac
+
 
 ## Configuring BOSH Director
+- PCF Ops Manager v2.5.2-build.172
+- pivotal-container-service-1.4.0-build.31
+
+
 opsman_image_url = "https://storage.googleapis.com/ops-manager-us/pcf-gcp-2.5.2-build.172.tar.gz"
 
 FILENAME=pivotal-container-service-1.4.0-build.31.pivotal
 DOWNLOAD_URL=https://network.pivotal.io/api/v2/products/pivotal-container-service/releases/354903/product_files/366115/download
 
 
-ENV_PREFIX=XXXXX
+ENV_PREFIX="my-pks"
+
 
 ## Configuring PKS Tile
 ### Generate Certificate for PKS API
 ```bash
-# func for generate a certificate
+# Function for generating a certificate
 om_generate_cert() (
   set -eu
   local domains="$1"
@@ -136,7 +144,7 @@ GCP_WORKER_SERVICE_ACCOUNT_KEY=$(cat terraform.tfstate | jq -r '.modules[0].outp
 UAA_URL=api-${PKS_DOMAIN}
 LB_NAME="tcp:${GCP_RESOURCE_PREFIX}-pks-api"
 
-# create config-pks.yml
+# Create config-pks.yml
 cat <<EOF > config-pks.yml
 product-properties:
   .pivotal-container-service.pks_tls:
