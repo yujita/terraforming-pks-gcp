@@ -48,7 +48,7 @@ opsman_image_url = "${OPS_IMAGE_URL}"
 opsman_machine_type = "n1-standard-2"
 EOF
 ```
-Make sure all valuables are correctly set.
+Make sure all variables are correctly set.
 ```
 cat terraform.tfvars
 ```
@@ -126,7 +126,7 @@ om_generate_cert() (
     echo "$response"
 )
 
-# Prep for ENV VAR
+# Environment Variables
 OPSMAN_DOMAIN_OR_IP_ADDRESS=$(cat terraform.tfstate | jq -r '.modules[0].resources."google_compute_address.ops-manager-public-ip".primary.attributes.address')
 PKS_API_IP=$(cat terraform.tfstate | jq -r '.modules[0].resources."google_compute_address.pks-api-ip".primary.attributes.address')
 PKS_DOMAIN=$(echo $PKS_API_IP | tr '.' '-').sslip.io
