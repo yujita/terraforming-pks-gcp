@@ -94,7 +94,7 @@ terraform destroy
 
 
 # Deploying BOSH Director
-### Install `om` CLI
+### Install om CLI
 For Mac:
 ```bash
 wget -q -O om https://github.com/pivotal-cf/om/releases/download/0.37.0/om-darwin
@@ -108,7 +108,7 @@ chmod +x om
 sudo mv om /usr/local/bin/
 ```
 
-### Set up Admin User
+### Set Up Admin User
 ```bash
 OPS_MGR_USR=ops-admin
 OPS_MGR_PWD=ops-password
@@ -132,7 +132,7 @@ configuration complete
 Access `https://${OPSMAN_DOMAIN_OR_IP_ADDRESS}` from a web browser.
 
 ### Configure Ops Manager
-Create `config-director.yml`
+Create `config-director.yml`.
 ```bash
 DIRECTOR_VM_TYPE=large.disk
 INTERNET_CONNECTED=true
@@ -229,7 +229,7 @@ resource-configuration:
     internet_connected: $INTERNET_CONNECTED
 EOF
 ```
-Apply `config-pks.yml`
+Configure the Ops Manager with `config-pks.yml`.
 ```bash
 om --target https://$OPSMAN_DOMAIN_OR_IP_ADDRESS \
    --skip-ssl-validation \
@@ -266,7 +266,7 @@ om --target "https://${OPSMAN_DOMAIN_OR_IP_ADDRESS}" \
 ```
 
 # Deploying PKS
-### Upload PKS Tile to Ops Manager 
+### Upload PKS Tile to Ops Manager
 Access `https://network.pivotal.io/products/pivotal-container-service/`. Click `i` button next to the `pivotal-container-service-x.y.z-build.N.pivotal` to get the file name and download URL.
 ```bash
 FILENAME=pivotal-container-service-1.4.0-build.31.pivotal
