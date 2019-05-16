@@ -12,10 +12,14 @@ brew install Caskroom/cask/google-cloud-sdk
 brew install terraform
 ```
 You also need the following CLIs to deploy PKS with BOSH Director.
-- `jq` CLI: https://stedolan.github.io/jq/
-- `om` CLI: https://github.com/pivotal-cf/om/releases
-- `uaac` CLI: https://github.com/cloudfoundry/cf-uaac
+- `jq` CLI    : https://stedolan.github.io/jq/
+- `om` CLI    : https://github.com/pivotal-cf/om/releases
+- `uaac` CLI  : https://github.com/cloudfoundry/cf-uaac
 
+### Version Information
+- Pivotal Cloud Foundry Operations Manager  : 2.5.2 build.172
+- Pivotal Container Service (PKS)           : 1.4.0 build.31
+- Terraform v0.11.13 + provider.google v2.6.0
 
 ### Service Account
 
@@ -89,12 +93,177 @@ terraform destroy
 
 # Deploying BOSH Director
 
+om CLI for Mac
+```bash
+wget -q -O om https://github.com/pivotal-cf/om/releases/download/0.37.0/om-darwin
+chmod +x om
+mv om /usr/local/bin/
+```
+om CLI for Linux
+```bash
+wget -q -O om https://github.com/pivotal-cf/om/releases/download/0.37.0/om-linux
+chmod +x om
+sudo mv om /usr/local/bin/
+```
+
+```bash
+OPS_MGR_USR=ops-admin
+OPS_MGR_PWD=ops-password
+OM_DECRYPTION_PWD=ops-password
+
+OPSMAN_DOMAIN_OR_IP_ADDRESS=$(cat terraform.tfstate | jq -r '.modules[0].resources."google_compute_address.ops-manager-public-ip".primary.attributes.address')
+om --target https://$OPSMAN_DOMAIN_OR_IP_ADDRESS \
+   --skip-ssl-validation \
+   configure-authentication \
+   --username $OPS_MGR_USR \
+   --password $OPS_MGR_PWD \
+   --decryption-passphrase $OM_DECRYPTION_PWD
+```
+Output (expected)
+```bash
+configuring internal userstore...
+waiting for configuration to complete...
+configuration complete
+```
+
+create `config-director.yml`
+```bash
+DIRECTOR_VM_TYPE=large.disk
+INTERNET_CONNECTED=true
+AUTH_JSON=$(cat terraform.tfstate | jq -r .modules[0].outputs.AuthJSON.value)
+OPSMAN_DOMAIN_OR_IP_ADDRESS=$(cat terraform.tfstate | jq -r '.modules[0].resources."google_compute_address.ops-manager-public-ip".primary.attributes.address')
+GCP_PROJECT_ID=$(echo $AUTH_JSON | jq -r .project_id)
+GCP_RESOURCE_PREFIX=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Default Deployment Tag".value')
+GCP_SERVICE_ACCOUNT_KEY=$(echo ${AUTH_JSON})
+AVAILABILITY_ZONES=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Availability Zones".value | map({name: .})' | tr -d '\n' | tr -d '"')
+PKS_INFRASTRUCTURE_NETWORK_NAME=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Infrastructure Network Name".value')
+PKS_INFRASTRUCTURE_IAAS_IDENTIFIER=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Infrastructure Network Google Network Name ".value')
+PKS_INFRASTRUCTURE_NETWORK_CIDR=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Infrastructure Network CIDR".value')
+PKS_INFRASTRUCTURE_RESERVED_IP_RANGES=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Infrastructure Network Reserved IP Ranges".value')
+PKS_INFRASTRUCTURE_DNS=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Infrastructure Network DNS".value')
+PKS_INFRASTRUCTURE_GATEWAY=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Infrastructure Network Gateway".value')
+PKS_INFRASTRUCTURE_AVAILABILITY_ZONES=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Availability Zones".value' | tr -d '\n')
+PKS_MAIN_NETWORK_NAME=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Main Network Name".value')
+PKS_MAIN_IAAS_IDENTIFIER=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Main Network Google Network Name ".value')
+PKS_MAIN_NETWORK_CIDR=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Main Network CIDR".value')
+PKS_MAIN_RESERVED_IP_RANGES=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Main Network Reserved IP Ranges".value')
+PKS_MAIN_DNS=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Main Network DNS".value')
+PKS_MAIN_GATEWAY=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Main Network Gateway".value')
+PKS_MAIN_AVAILABILITY_ZONES=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Availability Zones".value' | tr -d '\n')
+PKS_SERVICES_NETWORK_NAME=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Service Network Name".value')
+PKS_SERVICES_IAAS_IDENTIFIER=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Service Network Google Network Name ".value')
+PKS_SERVICES_NETWORK_CIDR=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Service Network CIDR".value')
+PKS_SERVICES_RESERVED_IP_RANGES=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Services Network Reserved IP Ranges".value')
+PKS_SERVICES_DNS=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Services Network DNS".value')
+PKS_SERVICES_GATEWAY=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Services Network Gateway".value')
+PKS_SERVICES_AVAILABILITY_ZONES=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Availability Zones".value' | tr -d '\n')
+SINGLETON_AVAILABILITY_NETWORK=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Infrastructure Network Name".value')
+SINGLETON_AVAILABILITY_ZONE=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Availability Zones".value | .[0]')
+
+cat <<EOF > config-director.yml
+---
+iaas-configuration:
+  project: $GCP_PROJECT_ID
+  default_deployment_tag: $GCP_RESOURCE_PREFIX
+  auth_json: |
+    $GCP_SERVICE_ACCOUNT_KEY
+director-configuration:
+  ntp_servers_string: metadata.google.internal
+  resurrector_enabled: true
+  post_deploy_enabled: true
+  database_type: internal
+  blobstore_type: local
+az-configuration: $AVAILABILITY_ZONES
+networks-configuration:
+  icmp_checks_enabled: false
+  networks:
+  - name: $PKS_INFRASTRUCTURE_NETWORK_NAME
+    service_network: false
+    subnets:
+    - iaas_identifier: $PKS_INFRASTRUCTURE_IAAS_IDENTIFIER
+      cidr: $PKS_INFRASTRUCTURE_NETWORK_CIDR
+      reserved_ip_ranges: $PKS_INFRASTRUCTURE_RESERVED_IP_RANGES
+      dns: $PKS_INFRASTRUCTURE_DNS
+      gateway: $PKS_INFRASTRUCTURE_GATEWAY
+      availability_zone_names: $PKS_INFRASTRUCTURE_AVAILABILITY_ZONES
+  - name: $PKS_MAIN_NETWORK_NAME
+    service_network: false
+    subnets:
+    - iaas_identifier: $PKS_MAIN_IAAS_IDENTIFIER
+      cidr: $PKS_MAIN_NETWORK_CIDR
+      reserved_ip_ranges: $PKS_MAIN_RESERVED_IP_RANGES
+      dns: $PKS_MAIN_DNS
+      gateway: $PKS_MAIN_GATEWAY
+      availability_zone_names: $PKS_MAIN_AVAILABILITY_ZONES
+  - name: $PKS_SERVICES_NETWORK_NAME
+    service_network: true
+    subnets:
+    - iaas_identifier: $PKS_SERVICES_IAAS_IDENTIFIER
+      cidr: $PKS_SERVICES_NETWORK_CIDR
+      reserved_ip_ranges: $PKS_SERVICES_RESERVED_IP_RANGES
+      dns: $PKS_SERVICES_DNS
+      gateway: $PKS_SERVICES_GATEWAY
+      availability_zone_names: $PKS_SERVICES_AVAILABILITY_ZONES
+network-assignment:
+  network:
+    name: $SINGLETON_AVAILABILITY_NETWORK
+  singleton_availability_zone:
+    name: $SINGLETON_AVAILABILITY_ZONE
+security-configuration:
+  trusted_certificates: "$OPS_MGR_TRUSTED_CERTS"
+  vm_password_type: generate
+resource-configuration:
+  director:
+    instance_type:
+      id: $DIRECTOR_VM_TYPE
+    internet_connected: $INTERNET_CONNECTED
+  compilation:
+    instance_type:
+      id: large.cpu
+    internet_connected: $INTERNET_CONNECTED
+EOF
+```
+apply `config-pks.yml`
+```bash
+om --target https://$OPSMAN_DOMAIN_OR_IP_ADDRESS \
+   --skip-ssl-validation \
+   --username "$OPS_MGR_USR" \
+   --password "$OPS_MGR_PWD" \
+   configure-director \
+   --config config-director.yml
+```
+Output (expected)
+```bash
+started configuring director options for bosh tile
+finished configuring director options for bosh tile
+started configuring availability zone options for bosh tile
+finished configuring availability zone options for bosh tile
+started configuring network options for bosh tile
+finished configuring network options for bosh tile
+started configuring network assignment options for bosh tile
+finished configuring network assignment options for bosh tile
+started configuring resource options for bosh tile
+applying resource configuration for the following jobs:
+  compilation
+  director
+finished configuring resource options for bosh tile
+```
+
+apply changes that made above
+```bash
+OPSMAN_DOMAIN_OR_IP_ADDRESS=$(cat terraform.tfstate | jq -r '.modules[0].resources."google_compute_address.ops-manager-public-ip".primary.attributes.address')
+om --target "https://${OPSMAN_DOMAIN_OR_IP_ADDRESS}" \
+   --skip-ssl-validation \
+   --username "${OPS_MGR_USR}" \
+   --password "${OPS_MGR_PWD}" \
+   apply-changes \
+   --ignore-warnings
+```
+
+
 
 # Deploying PKS
 
-### Version
-- PCF Ops Manager v2.5.2-build.172
-- pivotal-container-service-1.4.0-build.31
 
 
 opsman_image_url = "https://storage.googleapis.com/ops-manager-us/pcf-gcp-2.5.2-build.172.tar.gz"
