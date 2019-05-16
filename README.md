@@ -11,6 +11,11 @@ brew update
 brew install Caskroom/cask/google-cloud-sdk
 brew install terraform
 ```
+You also need the following CLIs to deploy PKS with BOSH Director.
+- `jq` CLI: https://stedolan.github.io/jq/
+- `om` CLI: https://github.com/pivotal-cf/om/releases
+- `uaac` CLI: https://github.com/cloudfoundry/cf-uaac
+
 
 ### Service Account
 
@@ -82,14 +87,11 @@ terraform destroy
 ```
 
 
-# Deploying PKS with Ops Manager
-## Prerequisites
-- `jq` cli: https://stedolan.github.io/jq/
-- `om` cli: https://github.com/pivotal-cf/om/releases
-- `uaac` cli: https://github.com/cloudfoundry/cf-uaac
+# Deploying BOSH Director
 
 
-## Configuring BOSH Director
+# Deploying PKS
+
 ### Version
 - PCF Ops Manager v2.5.2-build.172
 - pivotal-container-service-1.4.0-build.31
