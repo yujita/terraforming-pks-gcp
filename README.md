@@ -129,6 +129,8 @@ waiting for configuration to complete...
 configuration complete
 ```
 
+Access `https://${OPSMAN_DOMAIN_OR_IP_ADDRESS}` from a web browser.
+
 ### Configure Ops Manager
 Create `config-director.yml`
 ```bash
@@ -263,23 +265,22 @@ om --target "https://${OPSMAN_DOMAIN_OR_IP_ADDRESS}" \
    --ignore-warnings
 ```
 
-`https://${OPSMAN_DOMAIN_OR_IP_ADDRESS}`
-
 # Deploying PKS
-### Install `om` command
+### Upload PKS Tile to Ops Manager 
+Access `https://network.pivotal.io/products/pivotal-container-service/`. Click `i` button next to the `pivotal-container-service-x.y.z-build.N.pivotal` to get the file name and download URL.
 ```bash
 FILENAME=pivotal-container-service-1.4.0-build.31.pivotal
 DOWNLOAD_URL=https://network.pivotal.io/api/v2/products/pivotal-container-service/releases/354903/product_files/366115/download
 ```
+Access `https://network.pivotal.io/users/dashboard/edit-profile` and click the `REQUEST NEW REFRESH TOKEN` button to get a refresh token.
 ```bash
 REFRESH_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
-
-### Download PKS
+Get ACCESS_TOKEN with the command below.
 ```bash
 ACCESS_TOKEN=`curl -s https://network.pivotal.io/api/v2/authentication/access_tokens -d "{\"refresh_token\":\"${REFRESH_TOKEN}\"}" | jq -r .access_token`
 ```
-Download `pivotal-container-service-x.y.z-build.N.pivotal` on the Ops Mamager:
+Download `pivotal-container-service-x.y.z-build.N.pivotal` on the Ops Mamager.
 ```bash
 PKS_ENV_PREFIX=${ACCOUNT_NAME}
 ZONE=`gcloud compute instances list --filter name:${PKS_ENV_PREFIX}-ops-manager | awk 'NR>1 {print $2}'`
