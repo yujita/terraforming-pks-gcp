@@ -392,7 +392,7 @@ resource-config:
 EOF
 ```
 
-Copy the content below into a terminal to apply config-pks.yml to the Ops Manager.
+Copy the content below into a terminal to apply `config-pks.yml` to the Ops Manager.
 ```bash
 om --target "https://${OPSMAN_DOMAIN_OR_IP_ADDRESS}" \
    --username "$OPS_MGR_USR" \
