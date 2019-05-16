@@ -81,10 +81,11 @@ terraform destroy
 ```
 
 
-### Configuring OpsMan
+# Configuring OpsMan
 PCF Ops Manager v2.5.2-build.172
 pivotal-container-service-1.4.0-build.31
 
+## Configuring BOSH Director
 opsman_image_url = "https://storage.googleapis.com/ops-manager-us/pcf-gcp-2.5.2-build.172.tar.gz"
 
 FILENAME=pivotal-container-service-1.4.0-build.31.pivotal
@@ -93,7 +94,8 @@ DOWNLOAD_URL=https://network.pivotal.io/api/v2/products/pivotal-container-servic
 
 ENV_PREFIX=XXXXX
 
-# Generate Certificate for PKS API
+## Configuring PKS Tile
+### Generate Certificate for PKS API
 ```bash
 # func for generate a certificate
 om_generate_cert() (
