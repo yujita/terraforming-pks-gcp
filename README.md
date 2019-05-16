@@ -122,7 +122,7 @@ om --target https://$OPSMAN_DOMAIN_OR_IP_ADDRESS \
    --password $OPS_MGR_PWD \
    --decryption-passphrase $OM_DECRYPTION_PWD
 ```
-Output:
+Output
 ```bash
 configuring internal userstore...
 waiting for configuration to complete...
@@ -238,7 +238,7 @@ om --target https://$OPSMAN_DOMAIN_OR_IP_ADDRESS \
    configure-director \
    --config config-director.yml
 ```
-Output:
+Output
 ```bash
 started configuring director options for bosh tile
 finished configuring director options for bosh tile
@@ -267,16 +267,16 @@ om --target "https://${OPSMAN_DOMAIN_OR_IP_ADDRESS}" \
 
 # Deploying PKS
 ### Upload PKS Tile to Ops Manager
-Access `https://network.pivotal.io/products/pivotal-container-service/`. Click `i` button next to the `pivotal-container-service-x.y.z-build.N.pivotal` to get the file name and download URL.
+Access `https://network.pivotal.io/products/pivotal-container-service/`. Click `i` button next to the `pivotal-container-service-x.y.z-build.N.pivotal` to get the file name and download URL. Set them to the environment variables.
 ```bash
 FILENAME=pivotal-container-service-1.4.0-build.31.pivotal
 DOWNLOAD_URL=https://network.pivotal.io/api/v2/products/pivotal-container-service/releases/354903/product_files/366115/download
 ```
-Access `https://network.pivotal.io/users/dashboard/edit-profile` and click the `REQUEST NEW REFRESH TOKEN` button to get a refresh token.
+Access `https://network.pivotal.io/users/dashboard/edit-profile` and click `REQUEST NEW REFRESH TOKEN` to get a refresh token.
 ```bash
 REFRESH_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
-Get ACCESS_TOKEN with the command below.
+Get `ACCESS_TOKEN` with the command below.
 ```bash
 ACCESS_TOKEN=`curl -s https://network.pivotal.io/api/v2/authentication/access_tokens -d "{\"refresh_token\":\"${REFRESH_TOKEN}\"}" | jq -r .access_token`
 ```
@@ -292,7 +292,7 @@ gcloud compute ssh ubuntu@${PKS_ENV_PREFIX}-ops-manager \
     --quiet \
     --command "wget -q -O "${FILENAME}" --header='Authorization: Bearer ${ACCESS_TOKEN}' ${DOWNLOAD_URL}"
 ```
-Install `om` command on the Ops Manager:
+Install `om` command on the Ops Manager.
 ```bash
 gcloud compute ssh ubuntu@${PKS_ENV_PREFIX}-ops-manager \
     --zone ${ZONE} \
@@ -301,7 +301,7 @@ gcloud compute ssh ubuntu@${PKS_ENV_PREFIX}-ops-manager \
     --quiet \
     --command "wget -q -O om https://github.com/pivotal-cf/om/releases/download/0.37.0/om-linux && chmod +x om && sudo mv om /usr/local/bin/"
 ```
-Upload `pivotal-container-service-x.y.z-build.N.pivotal` to the Ops Manager:
+Upload `pivotal-container-service-x.y.z-build.N.pivotal` to the Ops Manager.
 ```bash
 PRODUCT_NAME=`basename $FILENAME .pivotal | python -c 'print("-".join(raw_input().split("-")[:-2]))'` # pivotal-container-service
 PRODUCT_VERSION=`basename $FILENAME .pivotal | python -c 'print("-".join(raw_input().split("-")[-2:]))'` # 1.0.4-build.5
@@ -313,7 +313,7 @@ gcloud compute ssh ubuntu@${PKS_ENV_PREFIX}-ops-manager \
   --quiet \
   --command "om --target https://localhost -k -u ${OPS_MGR_USR} -p ${OPS_MGR_PWD} --request-timeout 3600 upload-product -p ~/${FILENAME}"   
 ```
-Output:
+Output
 ```bash
 beginning product upload to Ops Manager
  2.43 GiB / 2.43 GiB  100.00% 49s32sss
@@ -329,7 +329,7 @@ gcloud compute ssh ubuntu@${PKS_ENV_PREFIX}-ops-manager \
   --quiet \
   --command "om --target https://localhost -k -u ${OPS_MGR_USR} -p ${OPS_MGR_PWD} stage-product -p ${PRODUCT_NAME} -v ${PRODUCT_VERSION}"
 ```
-Output:
+Output
 ```bash
 staging pivotal-container-service 1.0.4-build.5
 finished staging
@@ -341,7 +341,7 @@ For ubuntu-xenial 250.25:
 SC_FILENAME=light-bosh-stemcell-250.25-google-kvm-ubuntu-xenial-go_agent.tgz
 SC_DOWNLOAD_URL=https://network.pivotal.io/api/v2/products/stemcells-ubuntu-xenial/releases/331971/product_files/340983/download
 ```
-Download `light-bosh-stemcell-250.25-google-kvm-ubuntu-xenial-go_agent.tgz` on the Ops Manager:
+Download `light-bosh-stemcell-250.25-google-kvm-ubuntu-xenial-go_agent.tgz` on the Ops Manager.
 ```bash
 ACCESS_TOKEN=`curl -s https://network.pivotal.io/api/v2/authentication/access_tokens -d "{\"refresh_token\":\"${REFRESH_TOKEN}\"}" | jq -r .access_token`
 
@@ -361,7 +361,7 @@ gcloud compute ssh ubuntu@${PKS_ENV_PREFIX}-ops-manager \
   --quiet \
   --command "om --target https://localhost -k -u ${OPS_MGR_USR} -p ${OPS_MGR_PWD} --request-timeout 3600 upload-stemcell -s ~/${SC_FILENAME}"   
 ```
-Output:
+Output
 ```
 beginning stemcell upload to Ops Manager
  19.17 KiB / 19.17 KiB  100.00% 0s
