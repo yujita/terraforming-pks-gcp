@@ -107,7 +107,6 @@ DOWNLOAD_URL=https://network.pivotal.io/api/v2/products/pivotal-container-servic
 Copy the content below into a terminal to create `config-pks.yml` file. Make sure it's located in the root of this project.
 You should fill in the stub values with the correct content.
 ```bash
-# Function for generating a certificate
 om_generate_cert() (
   set -eu
   local domains="$1"
@@ -126,7 +125,6 @@ om_generate_cert() (
     echo "$response"
 )
 
-# Environment Variables
 OPSMAN_DOMAIN_OR_IP_ADDRESS=$(cat terraform.tfstate | jq -r '.modules[0].resources."google_compute_address.ops-manager-public-ip".primary.attributes.address')
 PKS_API_IP=$(cat terraform.tfstate | jq -r '.modules[0].resources."google_compute_address.pks-api-ip".primary.attributes.address')
 PKS_DOMAIN=$(echo $PKS_API_IP | tr '.' '-').sslip.io
@@ -146,7 +144,6 @@ GCP_WORKER_SERVICE_ACCOUNT_KEY=$(cat terraform.tfstate | jq -r '.modules[0].outp
 UAA_URL=api-${PKS_DOMAIN}
 LB_NAME="tcp:${GCP_RESOURCE_PREFIX}-pks-api"
 
-# Create config-pks.yml
 cat <<EOF > config-pks.yml
 product-properties:
   .pivotal-container-service.pks_tls:
@@ -395,7 +392,6 @@ EOF
 
 Copy the content below into a terminal to apply config-pks.yml to the Ops Manager.
 ```bash
-# apply config-pks.yml
 om --target "https://${OPSMAN_DOMAIN_OR_IP_ADDRESS}" \
    --username "$OPS_MGR_USR" \
    --password "$OPS_MGR_PWD" \
