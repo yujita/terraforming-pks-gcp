@@ -23,10 +23,6 @@ gcloud iam service-accounts create ${ACCOUNT_NAME} --display-name "PKS Account"
 gcloud iam service-accounts keys create "terraform.key.json" --iam-account "${ACCOUNT_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
 gcloud projects add-iam-policy-binding ${PROJECT_ID} --member "serviceAccount:${ACCOUNT_NAME}@${PROJECT_ID}.iam.gserviceaccount.com" --role 'roles/owner'
 ```
-### Prep Environment Values
-
-export ENV_PREFIX="XXXXXXXXX" # up to you
-export OPS_IMAGE_URL="https://storage.googleapis.com/ops-manager-us/pcf-gcp-2.5.2-build.172.tar.gz"
 
 ### Var File
 
@@ -34,6 +30,11 @@ Copy the stub content below into a terminal to create `terraform.tfvars` file. M
 These vars will be used when you run `terraform  apply`.
 You should fill in the stub values with the correct content.
 
+```bash
+# Environment Valuables
+export ENV_PREFIX="XXXXXXXX"
+export OPS_IMAGE_URL="https://storage.googleapis.com/ops-manager-us/pcf-gcp-2.5.2-build.172.tar.gz"
+```
 ```hcl
 cat << EOF > terraform.tfvars
 env_prefix = "${ENV_PREFIX}"
@@ -89,6 +90,7 @@ terraform destroy
 
 
 ## Configuring BOSH Director
+### Version
 - PCF Ops Manager v2.5.2-build.172
 - pivotal-container-service-1.4.0-build.31
 
@@ -99,11 +101,11 @@ FILENAME=pivotal-container-service-1.4.0-build.31.pivotal
 DOWNLOAD_URL=https://network.pivotal.io/api/v2/products/pivotal-container-service/releases/354903/product_files/366115/download
 
 
-ENV_PREFIX="my-pks"
 
 
 ## Configuring PKS Tile
-### Generate Certificate for PKS API
+Copy the content below into a terminal to create `config-pks.yml` file. Make sure it's located in the root of this project.
+You should fill in the stub values with the correct content.
 ```bash
 # Function for generating a certificate
 om_generate_cert() (
@@ -389,7 +391,10 @@ resource-config:
     - tcp:${ENV_PREFIX}-pks-api
     internet_connected: $INTERNET_CONNECTED
 EOF
+```
 
+Copy the content below into a terminal to apply config-pks.yml to the Ops Manager.
+```bash
 # apply config-pks.yml
 om --target "https://${OPSMAN_DOMAIN_OR_IP_ADDRESS}" \
    --username "$OPS_MGR_USR" \
