@@ -688,10 +688,10 @@ Output
 PKS API: https://api-xxx-xxx-xxx-xxx.sslip.io:9021
 UAA: https://api-xxx-xxx-xxx-xxx.sslip.io:8443
 ```
-### Get a Client Secret from PKS
-Get a client secret of the `admin` from Ops Manager.
+### Get Admin Client Secret from the Ops Manager
+Get an `admin` client secret from the Ops Manager.
 Access the Ops Manager from a web browser -> Click Pivotal Container Service Tile -> Click `Credentials Tab` -> Pks Uaa ManagementAdmin Client `Link to Credential`.
-Or you can get the client secret of the `admin` with the following command.
+Or you can get it with the command bellow.
 ```bash
 GUID=$(om \
     --target "https://${OPSMAN_DOMAIN_OR_IP_ADDRESS}" \
@@ -716,7 +716,7 @@ ADMIN_SECRET=$(om \
     | jq -r '.credential.value.secret'
 )
 ```
-### Get an Access Token for Admin Client
+### Get Access Token for Admin Client
 ```bash
 UAA_URL=https://api-${PKS_DOMAIN}:8443
 
@@ -735,7 +735,7 @@ Successfully fetched token via client credentials grant.
 Target: https://api-xxx-xxx-xxx-xxx.sslip.io:8443
 Context: admin, from client admin
 ```
-### Create a UAA user
+### Create UAA User
 ```bash
 PKS_USER=demo@example.com
 PKS_PASSWORD=password1234
