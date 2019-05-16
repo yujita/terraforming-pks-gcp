@@ -31,7 +31,6 @@ These vars will be used when you run `terraform  apply`.
 You should fill in the stub values with the correct content.
 
 ```bash
-# Environment Valuables
 export ENV_PREFIX="XXXXXXXX"
 export OPS_IMAGE_URL="https://storage.googleapis.com/ops-manager-us/pcf-gcp-2.5.2-build.172.tar.gz"
 ```
@@ -49,8 +48,9 @@ opsman_image_url = "${OPS_IMAGE_URL}"
 opsman_machine_type = "n1-standard-2"
 EOF
 ```
+Make sure all valuables are correctly set.
 ```
-cat terraform.tfvars # Make sure all valuables are correctly set.
+cat terraform.tfvars
 ```
 
 ### Var Details
