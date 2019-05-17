@@ -369,8 +369,8 @@ finished upload
 ```
 
 ### Configure PKS Tile
-Create a config file: `config-pks.yml`. Make sure it's located in the root of this project.
-You should fill in the stub values with the correct content.
+Create a config file: `config-pks.yml`.
+If you don't want to assign public IP addresses to K8s cluster nodes, set a `- null` instead of `- public_ip` in the  `.properties.vm_extensions:` property.
 ```bash
 om_generate_cert() (
   set -eu
