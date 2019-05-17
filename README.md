@@ -884,9 +884,19 @@ User: demo@example.com
 ```
 
 
-
-
-ubuntu@yenv-prefix-ops-manager:~$ om --target https://localhost --username ops-admin --password ops-password --skip-ssl-validation revert-staged-changes --product-name pivotal-container-service
-
-Remove PKS and BOSH from Ops Manager
-ubuntu@env-prefix-ops-manager:~$ om --target https://localhost --username ops-admin --password ops-password --skip-ssl-validation delete-installation --product-name pivotal-container-service
+### om Command Memo
+List config.
+```bash
+ubuntu@env-prefix-ops-manager:~$ om --target https://localhost -k -u ops-admin -p ops-password available-products
+```
+```bash
+ubuntu@env-prefix-ops-manager:~$ om --target https://localhost -k -u ops-admin -p ops-password staged-config --product-name pivotal-container-service
+```
+Revert staged changes.
+```bash
+ubuntu@env-prefix-ops-manager:~$ om --target https://localhost -k -u ops-admin -p ops-password revert-staged-changes --product-name pivotal-container-service
+```
+Remove PKS and BOSH from the Ops Manager.
+```bash
+ubuntu@env-prefix-ops-manager:~$ om --target https://localhost -k -u ops-admin -p ops-password delete-installation --product-name pivotal-container-service
+```
