@@ -887,16 +887,16 @@ User: demo@example.com
 ### om Command Memo
 List config.
 ```bash
-ubuntu@env-prefix-ops-manager:~$ om --target https://localhost -k -u ops-admin -p ops-password available-products
+ubuntu@env-prefix-ops-manager:~$ om --target https://localhost -k -u OPS_MGR_USR -p OPS_MGR_PWD available-products
 ```
 ```bash
-ubuntu@env-prefix-ops-manager:~$ om --target https://localhost -k -u ops-admin -p ops-password staged-config --product-name pivotal-container-service
+ubuntu@env-prefix-ops-manager:~$ om --target https://localhost -k -u OPS_MGR_USR -p OPS_MGR_PWD staged-config --product-name pivotal-container-service
 ```
 Revert staged changes.
 ```bash
-ubuntu@env-prefix-ops-manager:~$ om --target https://localhost -k -u ops-admin -p ops-password revert-staged-changes --product-name pivotal-container-service
+ubuntu@env-prefix-ops-manager:~$ om --target https://localhost -k -u OPS_MGR_USR -p OPS_MGR_PWD revert-staged-changes --product-name pivotal-container-service
 ```
 Remove PKS and BOSH from the Ops Manager.
 ```bash
-ubuntu@env-prefix-ops-manager:~$ om --target https://localhost -k -u ops-admin -p ops-password delete-installation --product-name pivotal-container-service
+ubuntu@env-prefix-ops-manager:~$ om --target https://localhost -k -u OPS_MGR_USR -p OPS_MGR_PWD delete-installation --product-name pivotal-container-service
 ```
