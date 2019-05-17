@@ -410,6 +410,17 @@ UAA_URL=api-${PKS_DOMAIN}
 LB_NAME="tcp:${GCP_RESOURCE_PREFIX}-pks-api"
 
 cat <<EOF > config-pks.yml
+network-properties:
+  singleton_availability_zone:
+    name: asia-northeast1-a
+  other_availability_zones:
+  - name: asia-northeast1-a
+  - name: asia-northeast1-b
+  - name: asia-northeast1-c
+  network:
+    name: pks-main
+  service_network:
+    name: pks-services
 product-properties:
   .pivotal-container-service.pks_tls:
     value:
@@ -417,84 +428,118 @@ product-properties:
 $CERT_PEM
       private_key_pem: |
 $KEY_PEM
-  .properties.cloud_provider:
-    value: GCP
-  .properties.cloud_provider.gcp.master_service_account:
-    value: ${ACCOUNT_NAME}-pks-master-node@${PROJECT_ID}.iam.gserviceaccount.com
-  .properties.cloud_provider.gcp.network:
-    value: $GCP_NETWORK
-  .properties.cloud_provider.gcp.project_id:
-    value: $GCP_PROJECT_ID
-  .properties.cloud_provider.gcp.worker_service_account:
-    value: ${ENV_PREFIX}-pks-worker-node@${PROJECT_ID}.iam.gserviceaccount.com
-  .properties.network_selector:
-    value: flannel
-  .properties.network_selector.flannel.pod_network_cidr:
-    value: 10.200.0.0/16
-  .properties.network_selector.flannel.service_cluster_cidr:
-    value: 10.100.200.0/24
-  .properties.pks-vrli:
-    value: disabled
-  .properties.pks-vrli.enabled.skip_cert_verify:
-    value: false
-  .properties.pks-vrli.enabled.use_ssl:
-    value: true
-  .properties.pks-vrops:
-    value: disabled
   .properties.pks_api_hostname:
     value: api-${PKS_DOMAIN}
+  .properties.worker_max_in_flight: # The maximum number of non-canary instances to update in parallel within an availability zone.
+    value: 1 # Maximum number of worker VMs created at a time (PKS API Service -> Worker VM Max in Flight)
   .properties.plan1_selector:
     value: Plan Active
   .properties.plan1_selector.active.allow_privileged_containers:
     value: false
   .properties.plan1_selector.active.description:
-    value: 'minimum resources for demo'
+    value: "minimum resources for demo\r\nmaster node: 1\r\nworker node: 1"
+  .properties.plan1_selector.active.errand_vm_type:
+    value: micro
   .properties.plan1_selector.active.master_az_placement:
     value:
     - asia-northeast1-a
   .properties.plan1_selector.active.master_instances:
     value: 1
+  .properties.plan1_selector.active.master_persistent_disk_type:
+    value: "10240"
+  .properties.plan1_selector.active.master_vm_type:
+    value: micro
   .properties.plan1_selector.active.max_worker_instances:
     value: 50
   .properties.plan1_selector.active.name:
     value: small
   .properties.plan1_selector.active.worker_az_placement:
     value:
-    -  asia-northeast1-a
-    -  asia-northeast1-b
-    -  asia-northeast1-c
+    - asia-northeast1-a
+    - asia-northeast1-b
+    - asia-northeast1-c
   .properties.plan1_selector.active.worker_instances:
     value: 1
+  .properties.plan1_selector.active.worker_persistent_disk_type:
+    value: "51200"
+  .properties.plan1_selector.active.worker_vm_type:
+    value: medium
   .properties.plan2_selector:
-    value: Plan Inactive
+    value: Plan Active
   .properties.plan2_selector.active.allow_privileged_containers:
     value: false
   .properties.plan2_selector.active.description:
-    value: 'Example: This plan will configure a medium sized kubernetes cluster, suitable
-      for more pods.'
+    value: "medium\r\nmaster node: 1\r\nworker node: 3"
+  .properties.plan2_selector.active.errand_vm_type:
+    value: micro
+  .properties.plan2_selector.active.eviction_hard:
+    value: memory.available=100Mi, nodefs.available=10%, nodefs.inodesFree=5%
+  .properties.plan2_selector.active.master_az_placement:
+    value:
+    - asia-northeast1-a
+    - asia-northeast1-b
+    - asia-northeast1-c
   .properties.plan2_selector.active.master_instances:
-    value: 3
+    value: 1
+  .properties.plan2_selector.active.master_persistent_disk_type:
+    value: "10240"
+  .properties.plan2_selector.active.master_vm_type:
+    value: small
   .properties.plan2_selector.active.max_worker_instances:
     value: 50
   .properties.plan2_selector.active.name:
     value: medium
+  .properties.plan2_selector.active.system_reserved:
+    value: memory=250Mi, cpu=150m
+  .properties.plan2_selector.active.worker_az_placement:
+    value:
+    - asia-northeast1-a
+    - asia-northeast1-b
+    - asia-northeast1-c
   .properties.plan2_selector.active.worker_instances:
-    value: 5
+    value: 3
+  .properties.plan2_selector.active.worker_persistent_disk_type:
+    value: "51200"
+  .properties.plan2_selector.active.worker_vm_type:
+    value: medium
   .properties.plan3_selector:
-    value: Plan Inactive
+    value: Plan Active
   .properties.plan3_selector.active.allow_privileged_containers:
     value: false
   .properties.plan3_selector.active.description:
-    value: 'Example: This plan will configure a large kubernetes cluster for resource
-      heavy workloads, or a high number of workloads.'
+    value: "medium\r\nmaster node: 3\r\nworker node: 5"
+  .properties.plan3_selector.active.errand_vm_type:
+    value: micro
+  .properties.plan3_selector.active.eviction_hard:
+    value: memory.available=100Mi, nodefs.available=10%, nodefs.inodesFree=5%
+  .properties.plan3_selector.active.master_az_placement:
+    value:
+    - asia-northeast1-a
+    - asia-northeast1-b
+    - asia-northeast1-c
   .properties.plan3_selector.active.master_instances:
     value: 3
+  .properties.plan3_selector.active.master_persistent_disk_type:
+    value: "10240"
+  .properties.plan3_selector.active.master_vm_type:
+    value: small
   .properties.plan3_selector.active.max_worker_instances:
     value: 50
   .properties.plan3_selector.active.name:
-    value: large
+    value: medium
+  .properties.plan3_selector.active.system_reserved:
+    value: memory=250Mi, cpu=150m
+  .properties.plan3_selector.active.worker_az_placement:
+    value:
+    - asia-northeast1-a
+    - asia-northeast1-b
+    - asia-northeast1-c
   .properties.plan3_selector.active.worker_instances:
     value: 5
+  .properties.plan3_selector.active.worker_persistent_disk_type:
+    value: "51200"
+  .properties.plan3_selector.active.worker_vm_type:
+    value: medium
   .properties.plan4_selector:
     value: Plan Inactive
   .properties.plan4_selector.active.allow_privileged_containers:
@@ -600,58 +645,115 @@ $KEY_PEM
     value: Plan-10
   .properties.plan10_selector.active.worker_instances:
     value: 5
-  .properties.proxy_selector:
-    value: Disabled
+  .properties.cloud_provider:
+    value: GCP
+  .properties.cloud_provider.gcp.project_id:
+    value: $GCP_PROJECT_ID
+  .properties.cloud_provider.gcp.network:
+    value: $GCP_NETWORK
+  .properties.cloud_provider.gcp.master_service_account:
+    value: ${ACCOUNT_NAME}-pks-master-node@${PROJECT_ID}.iam.gserviceaccount.com
+  .properties.cloud_provider.gcp.worker_service_account:
+    value: ${ENV_PREFIX}-pks-worker-node@${PROJECT_ID}.iam.gserviceaccount.com
+#  .properties.cloud_provider.vsphere.vcenter_master_creds:
+#    value:
+#      password: '***'
+#  .properties.cloud_provider.azure.azure_cloud_name:
+#    value: AzurePublicCloud
   .properties.syslog_selector:
     value: disabled
-  .properties.syslog_selector.enabled.tls_enabled:
-    value: true
-  .properties.syslog_selector.enabled.transport_protocol:
-    value: tcp
-  .properties.telemetry_selector:
+#  .properties.syslog_selector.enabled.transport_protocol:
+#    value: tcp
+#  .properties.syslog_selector.enabled.tls_enabled:
+#    value: true
+  .properties.pks-vrli:
     value: disabled
-  .properties.telemetry_selector.enabled.billing_polling_interval:
-    value: 60
-  .properties.telemetry_selector.enabled.environment_provider:
-    value: none
-  .properties.telemetry_selector.enabled.telemetry_polling_interval:
-    value: 600
-  .properties.uaa:
-    value: internal
-  .properties.uaa_oidc:
-    value: false
+#  .properties.pks-vrli.enabled.skip_cert_verify:
+#    value: false
+#  .properties.pks-vrli.enabled.use_ssl:
+#    value: true
+  .properties.log_sink_resources_deploy:
+    value: true
+  .properties.metric_sink_resources_deploy:
+    value: true
+  .properties.network_selector:
+    value: flannel
+  .properties.network_selector.flannel.pod_network_cidr:
+    value: 10.200.0.0/16
+  .properties.network_selector.flannel.service_cluster_cidr:
+    value: 10.100.200.0/24
+#  .properties.network_selector.nsx.lb_size_large_supported:
+#    value: true
+#  .properties.network_selector.nsx.lb_size_medium_supported:
+#    value: true
+#  .properties.network_selector.nsx.nat_mode:
+#    value: true
+#  .properties.network_selector.nsx.network_automation:
+#    value: true
+#  .properties.network_selector.nsx.nsx-t-insecure:
+#    value: false
+#  .properties.network_selector.nsx.nsx-t-superuser-certificate:
+#    value:
+#      private_key_pem: '***'
+#  .properties.proxy_selector.enabled.http_proxy_credentials:
+#    value:
+#      password: '***'
+#  .properties.proxy_selector.enabled.https_proxy_credentials:
+#    value:
+#      password: '***'
+  .properties.proxy_selector:
+    value: Disabled
+  .properties.vm_extensions:
+    value:
+    - public_ip # Networking -> Enable outbound internet access (Warning: Not allowing internet access will require a NAT instance. To do so, set a null value instead of public_ip)
   .properties.uaa_pks_cli_access_token_lifetime:
     value: 600
   .properties.uaa_pks_cli_refresh_token_lifetime:
     value: 21600
-  .properties.vm_extensions:
-    value:
-    - public_ip
+  .properties.uaa_oidc:
+    value: false
+  .properties.uaa:
+    value: internal
+#  .properties.uaa.ldap.credentials:
+#    value:
+#      password: '***'
+#  .properties.uaa.ldap.external_groups_whitelist:
+#    value: '*'
+#  .properties.uaa.ldap.group_search_filter:
+#    value: member={0}
+#  .properties.uaa.ldap.ldap_referrals:
+#    value: follow
+#  .properties.uaa.ldap.mail_attribute_name:
+#    value: mail
+#  .properties.uaa.ldap.search_filter:
+#    value: cn={0}
   .properties.wavefront:
     value: disabled
-  .properties.worker_max_in_flight:
-    value: 1
-network-properties:
-  network:
-    name: $PKS_MAIN_NETWORK_NAME
-  other_availability_zones:
-  - name: asia-northeast1-a
-  - name: asia-northeast1-b
-  - name: asia-northeast1-c
-  service_network:
-    name: $PKS_SERVICES_NETWORK_NAME
-  singleton_availability_zone:
-    name: $SINGLETON_AVAILABILITY_ZONE
+#  .properties.wavefront.enabled.wavefront_token:
+#    value:
+#      secret: '***'
+  .properties.pks-vrops:
+    value: disabled # Configure PKS Monitoring Integration(s) -> Deploy cAdvisor by VMware Integration
+  .properties.telemetry_selector:
+    value: disabled
+#  .properties.telemetry_selector.enabled.billing_polling_interval:
+#    value: 60
+#  .properties.telemetry_selector.enabled.environment_provider:
+#    value: none
+#  .properties.telemetry_selector.enabled.telemetry_polling_interval:
+#    value: 600
+#  .properties.telemetry_selector.enabled.telemetry_url:
+#    value: https://vcsa.vmware.com/ph
 resource-config:
   pivotal-container-service:
-    instnces: automatic
+    instances: automatic
     persistent_disk:
       size_mb: automatic
     instance_type:
       id: automatic
+    internet_connected: $INTERNET_CONNECTED
     elb_names:
     - tcp:${ENV_PREFIX}-pks-api
-    internet_connected: $INTERNET_CONNECTED
 EOF
 ```
 Configure the PKS Tile with `config-pks.yml`.
@@ -780,3 +882,11 @@ Output
 API Endpoint: https://api-35-200-113-234.sslip.io:9021
 User: demo@example.com
 ```
+
+
+
+
+ubuntu@yenv-prefix-ops-manager:~$ om --target https://localhost --username ops-admin --password ops-password --skip-ssl-validation revert-staged-changes --product-name pivotal-container-service
+
+Remove PKS and BOSH from Ops Manager
+ubuntu@env-prefix-ops-manager:~$ om --target https://localhost --username ops-admin --password ops-password --skip-ssl-validation delete-installation --product-name pivotal-container-service
