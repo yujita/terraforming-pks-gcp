@@ -137,7 +137,7 @@ Create a config file: `config-director.yml`.
 DIRECTOR_VM_TYPE=large.disk
 INTERNET_CONNECTED=true
 AUTH_JSON=$(cat terraform.tfstate | jq -r .modules[0].outputs.AuthJSON.value)
-OPSMAN_DOMAIN_OR_IP_ADDRESS=$(cat terraform.tfstate | jq -r '.modules[0].resources."google_compute_address.ops-manager-public-ip".primary.attributes.address')
+OPSMAN_DOMAIN_OR_IP_ADDRESS=$(cat terraform.tfstate | tr -d '[:cntrl:]' | jq -r '.modules[0].resources."google_compute_address.ops-manager-public-ip".primary.attributes.address')
 GCP_PROJECT_ID=$(echo $AUTH_JSON | jq -r .project_id)
 GCP_RESOURCE_PREFIX=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Default Deployment Tag".value')
 GCP_SERVICE_ACCOUNT_KEY=$(echo ${AUTH_JSON})
