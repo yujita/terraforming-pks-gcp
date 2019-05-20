@@ -136,7 +136,7 @@ Create a config file: `config-director.yml`.
 ```bash
 DIRECTOR_VM_TYPE=large.disk
 INTERNET_CONNECTED=true
-AUTH_JSON=$(cat terraform.tfstate | jq -r .modules[0].outputs.AuthJSON.value)
+AUTH_JSON=$(cat terraform.tfstate | jq -r '.modules[0].outputs.AuthJSON.value')
 OPSMAN_DOMAIN_OR_IP_ADDRESS=$(cat terraform.tfstate | tr -d '[:cntrl:]' | jq -r '.modules[0].resources."google_compute_address.ops-manager-public-ip".primary.attributes.address')
 GCP_PROJECT_ID=$(echo $AUTH_JSON | jq -r .project_id)
 GCP_RESOURCE_PREFIX=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Default Deployment Tag".value')
@@ -167,7 +167,6 @@ SINGLETON_AVAILABILITY_NETWORK=$(cat terraform.tfstate | jq -r '.modules[0].outp
 SINGLETON_AVAILABILITY_ZONE=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Availability Zones".value | .[0]')
 
 cat <<EOF > config-director.yml
----
 iaas-configuration:
   project: $GCP_PROJECT_ID
   default_deployment_tag: $GCP_RESOURCE_PREFIX
@@ -282,7 +281,7 @@ ACCESS_TOKEN=`curl -s https://network.pivotal.io/api/v2/authentication/access_to
 ```
 Download `pivotal-container-service-x.y.z-build.N.pivotal` on the Ops Mamager.
 ```bash
-PKS_ENV_PREFIX=${ACCOUNT_NAME}
+PKS_ENV_PREFIX=${ENV_PREFIX}
 ZONE=`gcloud compute instances list --filter name:${PKS_ENV_PREFIX}-ops-manager | awk 'NR>1 {print $2}'`
 
 gcloud compute ssh ubuntu@${PKS_ENV_PREFIX}-ops-manager \
@@ -654,7 +653,7 @@ $KEY_PEM
   .properties.cloud_provider.gcp.master_service_account:
     value: ${ACCOUNT_NAME}-pks-master-node@${PROJECT_ID}.iam.gserviceaccount.com
   .properties.cloud_provider.gcp.worker_service_account:
-    value: ${ENV_PREFIX}-pks-worker-node@${PROJECT_ID}.iam.gserviceaccount.com
+    value: ${PKS_ENV_PREFIX}-pks-worker-node@${PROJECT_ID}.iam.gserviceaccount.com
 #  .properties.cloud_provider.vsphere.vcenter_master_creds:
 #    value:
 #      password: '***'
@@ -753,7 +752,7 @@ resource-config:
       id: automatic
     internet_connected: $INTERNET_CONNECTED
     elb_names:
-    - tcp:${ENV_PREFIX}-pks-api
+    - tcp:${PKS_ENV_PREFIX}-pks-api
 EOF
 ```
 Configure the PKS Tile with `config-pks.yml`.
