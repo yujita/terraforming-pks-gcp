@@ -42,12 +42,12 @@ These vars will be used when you run `terraform  apply`.
 You should fill in the stub values with the correct content.
 
 ```bash
-export ENV_PREFIX="XXXXXXXX"
+export PKS_ENV_PREFIX="XXXXXXXX"
 export OPS_IMAGE_URL="https://storage.googleapis.com/ops-manager-us/pcf-gcp-2.5.2-build.172.tar.gz"
 ```
 ```hcl
 cat << EOF > terraform.tfvars
-env_prefix = "${ENV_PREFIX}"
+env_prefix = "${PKS_ENV_PREFIX}"
 project = "${PROJECT_ID}"
 region = "asia-northeast1"
 zones = ["asia-northeast1-a", "asia-northeast1-b", "asia-northeast1-c"]
@@ -281,7 +281,6 @@ ACCESS_TOKEN=`curl -s https://network.pivotal.io/api/v2/authentication/access_to
 ```
 Download `pivotal-container-service-x.y.z-build.N.pivotal` on the Ops Mamager.
 ```bash
-PKS_ENV_PREFIX=${ENV_PREFIX}
 ZONE=`gcloud compute instances list --filter name:${PKS_ENV_PREFIX}-ops-manager | awk 'NR>1 {print $2}'`
 
 gcloud compute ssh ubuntu@${PKS_ENV_PREFIX}-ops-manager \
