@@ -655,9 +655,9 @@ $KEY_PEM
   .properties.cloud_provider.gcp.network:
     value: $GCP_NETWORK
   .properties.cloud_provider.gcp.master_service_account:
-    value: ${ACCOUNT_NAME}-pks-master-node@${PROJECT_ID}.iam.gserviceaccount.com
+    value: ${ACCOUNT_NAME}-pks-master-node@${GCP_PROJECT_ID}.iam.gserviceaccount.com
   .properties.cloud_provider.gcp.worker_service_account:
-    value: ${PKS_ENV_PREFIX}-pks-worker-node@${PROJECT_ID}.iam.gserviceaccount.com
+    value: ${PKS_ENV_PREFIX}-pks-worker-node@${GCP_PROJECT_ID}.iam.gserviceaccount.com
 #  .properties.cloud_provider.vsphere.vcenter_master_creds:
 #    value:
 #      password: '***'
