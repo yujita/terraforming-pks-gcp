@@ -167,11 +167,11 @@ SINGLETON_AVAILABILITY_NETWORK=$(cat terraform.tfstate | jq -r '.modules[0].outp
 SINGLETON_AVAILABILITY_ZONE=$(cat terraform.tfstate | jq -r '.modules[0].outputs."Availability Zones".value | .[0]')
 
 cat <<EOF > config-director.yml
+---
 iaas-configuration:
   project: $GCP_PROJECT_ID
   default_deployment_tag: $GCP_RESOURCE_PREFIX
-  auth_json: |
-    $GCP_SERVICE_ACCOUNT_KEY
+  auth_json: $(cat terraform.key.json | jq 'tostring')
 director-configuration:
   ntp_servers_string: metadata.google.internal
   resurrector_enabled: true
