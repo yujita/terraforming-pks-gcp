@@ -372,6 +372,9 @@ finished upload
 Create a config file: `config-pks.yml`.
 If you don't want to assign public IP addresses to K8s cluster nodes, set a `- null` instead of `- public_ip` in the  `.properties.vm_extensions:`.
 ```bash
+export ACCOUNT_NAME=“YYYYYYYY” # your terraform service account name ex) "terraform-sa"
+```
+```bash
 om_generate_cert() (
   set -eu
   local domains="$1"
@@ -882,6 +885,12 @@ Output
 API Endpoint: https://api-35-200-113-234.sslip.io:9021
 User: demo@example.com
 ```
+
+### Login to PKS API
+- `pks login -a API_URL -u USERNAME -p PASSWORD`
+- `pks plans`
+
+- `pks get-credentials CLUSTER_NAME` get config for the cluster administrator to access the K8s cluster
 
 
 ### om Command Memo
