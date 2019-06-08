@@ -372,7 +372,7 @@ finished upload
 Create a config file: `config-pks.yml`.
 If you don't want to assign public IP addresses to K8s cluster nodes, set a `- null` instead of `- public_ip` in the  `.properties.vm_extensions:`.
 ```bash
-export ACCOUNT_NAME=“YYYYYYYY” # your terraform service account name ex) "terraform-sa"
+export ACCOUNT_NAME=YYYYYYYY # your terraform service account name ex) terraform-sa
 ```
 ```bash
 om_generate_cert() (
