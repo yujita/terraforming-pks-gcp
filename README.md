@@ -313,8 +313,9 @@ gcloud compute ssh ubuntu@${PKS_ENV_PREFIX}-ops-manager \
 ```
 Output
 ```bash
+processing product
 beginning product upload to Ops Manager
- 2.43 GiB / 2.43 GiB  100.00% 49s32sss
+ 4.62 GiB / 4.62 GiB  100.00% 1m5s6s
 2m28s elapsed, waiting for response from Ops Manager...
 finished upload
 ```
@@ -329,7 +330,7 @@ gcloud compute ssh ubuntu@${PKS_ENV_PREFIX}-ops-manager \
 ```
 Output
 ```bash
-staging pivotal-container-service 1.0.4-build.5
+staging pivotal-container-service 1.4.0-build.31
 finished staging
 ```
 
@@ -361,8 +362,9 @@ gcloud compute ssh ubuntu@${PKS_ENV_PREFIX}-ops-manager \
 ```
 Output
 ```
+processing stemcell
 beginning stemcell upload to Ops Manager
- 19.17 KiB / 19.17 KiB  100.00% 0s
+ 20.30 KiB / 20.30 KiB  100.00% 0s
 finished upload
 ```
 
