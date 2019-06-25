@@ -18,6 +18,7 @@ brew install terraform
 ```
 You also need the following CLIs to deploy PKS with BOSH Director.
 - jq CLI    : https://stedolan.github.io/jq/
+
 `brew install jq`
 - om CLI    : https://github.com/pivotal-cf/om/releases
 - uaac CLI  : https://github.com/cloudfoundry/cf-uaac
