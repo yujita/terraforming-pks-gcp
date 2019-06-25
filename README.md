@@ -17,9 +17,10 @@ brew install Caskroom/cask/google-cloud-sdk
 brew install terraform
 ```
 You also need the following CLIs to deploy PKS with BOSH Director.
-- `jq` CLI    : https://stedolan.github.io/jq/
-- `om` CLI    : https://github.com/pivotal-cf/om/releases
-- `uaac` CLI  : https://github.com/cloudfoundry/cf-uaac
+- jq CLI    : https://stedolan.github.io/jq/
+`brew install jq`
+- om CLI    : https://github.com/pivotal-cf/om/releases
+- uaac CLI  : https://github.com/cloudfoundry/cf-uaac
 
 
 
@@ -885,11 +886,64 @@ Output
 API Endpoint: https://api-xxx-xxx-xxx-xxx.sslip.io:9021
 User: demo@example.com
 ```
+### Create Cluster
+Set a cluster name
+```bash
+CLUSTER_NAME=dev-cluster
+```
+Before creating a K8s cluster, you need a load balancer with an external ip for K8s master nodes.
+Create a LB for K8s master nodes.
+```bash
+GCP_REGION=$(cat terraform.tfstate | jq -r '.modules[0].resources."google_compute_subnetwork.pks-subnet".primary.attributes.region')
+gcloud compute addresses create ${CLUSTER_NAME}-master-api-ip --region ${GCP_REGION}
+gcloud compute target-pools create ${CLUSTER_NAME}-master-api --region ${GCP_REGION}
+```
+Get a LB External IP address
+```bash
+MASTER_EXTERNAL_IP=$(gcloud compute addresses describe ${CLUSTER_NAME}-master-api-ip --region ${GCP_REGION} --format json | jq -r .address)
+```
+Create a K8s cluster
+```bash
+pks create-cluster ${CLUSTER_NAME} -e ${MASTER_EXTERNAL_IP} -p small
+```
+```bash
+pks cluster ${CLUSTER_NAME}
+```
+
+Attach K8s master nodes to the LB as backends.
+```bash
+CLUSTER_UUID=$(pks cluster ${CLUSTER_NAME} --json | jq -r .uuid)
+MASTER_INSTANCE_NAME=$(gcloud compute instances list --filter "tags:service-instance-${CLUSTER_UUID}-master" | awk 'NR>1 {print $1}')
+MASTER_INSTANCE_ZONE=$(gcloud compute instances list --filter "tags:service-instance-${CLUSTER_UUID}-master" | awk 'NR>1 {print $2}')
+```
+
+```bash
+gcloud compute target-pools add-instances ${CLUSTER_NAME}-master-api \
+--instances ${MASTER_INSTANCE_NAME} \
+--instances-zone ${MASTER_INSTANCE_ZONE} \
+--region ${GCP_REGION}
+
+gcloud compute forwarding-rules create ${CLUSTER_NAME}-master-api-8443 \
+--region ${GCP_REGION} \
+--address ${CLUSTER_NAME}-master-api-ip \
+--target-pool ${CLUSTER_NAME}-master-api \
+--ports 8443
+```
+
+Fetch credentials for the K8s cluster.
+```bash
+pks get-credentials ${CLUSTER_NAME}
+```
+
+```bash
+kubectl cluster-info
+```
+
+
 
 ### Login to PKS API
 - `pks login -a API_URL -u USERNAME -p PASSWORD`
 - `pks plans`
-
 - `pks get-credentials CLUSTER_NAME` get config for the cluster administrator to access the K8s cluster
 
 
