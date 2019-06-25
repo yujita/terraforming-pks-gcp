@@ -882,7 +882,7 @@ pks login -k -a ${PKS_API_URL} -u ${PKS_USER} -p ${PKS_PASSWORD}
 ```
 Output
 ```bash
-API Endpoint: https://api-35-200-113-234.sslip.io:9021
+API Endpoint: https://api-xxx-xxx-xxx-xxx.sslip.io:9021
 User: demo@example.com
 ```
 
