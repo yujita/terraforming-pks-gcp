@@ -18,10 +18,20 @@ brew install terraform
 ```
 You also need the following CLIs to deploy PKS with BOSH Director.
 - jq CLI    : https://stedolan.github.io/jq/
-
-`brew install jq`
+```bash
+brew install jq
+```
 - om CLI    : https://github.com/pivotal-cf/om/releases
+```bash
+# homebrew:
+brew tap starkandwayne/cf
+brew install om
+```
 - uaac CLI  : https://github.com/cloudfoundry/cf-uaac
+```bash
+# Rubygems:
+gem install cf-uaac
+```
 
 
 
@@ -785,7 +795,7 @@ om --target "https://${OPSMAN_DOMAIN_OR_IP_ADDRESS}" \
 # Login to PKS API
 ### Get API Endpoint
 ```bash
-cat <<EOF
+cat << EOF
 PKS API: https://api-${PKS_DOMAIN}:9021
 UAA: https://api-${PKS_DOMAIN}:8443
 EOF
@@ -888,7 +898,7 @@ API Endpoint: https://api-xxx-xxx-xxx-xxx.sslip.io:9021
 User: demo@example.com
 ```
 ### Create Cluster
-Set a cluster name
+Set a cluster name.
 ```bash
 CLUSTER_NAME=dev-cluster
 ```
@@ -899,11 +909,11 @@ GCP_REGION=$(cat terraform.tfstate | jq -r '.modules[0].resources."google_comput
 gcloud compute addresses create ${CLUSTER_NAME}-master-api-ip --region ${GCP_REGION}
 gcloud compute target-pools create ${CLUSTER_NAME}-master-api --region ${GCP_REGION}
 ```
-Get a LB External IP address
+Get a LB External IP address.
 ```bash
 MASTER_EXTERNAL_IP=$(gcloud compute addresses describe ${CLUSTER_NAME}-master-api-ip --region ${GCP_REGION} --format json | jq -r .address)
 ```
-Create a K8s cluster
+Create a K8s cluster.
 ```bash
 pks create-cluster ${CLUSTER_NAME} -e ${MASTER_EXTERNAL_IP} -p small
 ```
