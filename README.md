@@ -796,7 +796,7 @@ UAA: https://api-xxx-xxx-xxx-xxx.sslip.io:8443
 ### Get Admin Client Secret from the Ops Manager
 Get an `admin` client secret from the Ops Manager.
 Access the Ops Manager from a web browser -> Click Pivotal Container Service Tile -> Click `Credentials Tab` -> Pks Uaa ManagementAdmin Client `Link to Credential`.
-Or you can get it with the command bellow.
+Or you can get it with the command below.
 ```bash
 GUID=$(om \
     --target "https://${OPSMAN_DOMAIN_OR_IP_ADDRESS}" \
