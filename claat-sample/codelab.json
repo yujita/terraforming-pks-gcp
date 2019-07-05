@@ -1,0 +1,23 @@
+{
+  "environment": "web",
+  "format": "html",
+  "prefix": "https://storage.googleapis.com",
+  "mainga": "UA-49880327-14",
+  "updated": "2019-07-05T08:24:18Z",
+  "id": "claat-sample",
+  "duration": 0,
+  "title": "PKS Hands-on",
+  "authors": "budougumi0617",
+  "summary": "claatでCodelabs形式の資料を作るとき大雑把な使い方です。",
+  "source": "1dBSIvC0gTPzA-uJ6DXi5xyOB5P6zdzrEaTeCmWMDtT4",
+  "theme": "go",
+  "status": [
+    "draft"
+  ],
+  "category": [
+    "Go"
+  ],
+  "tags": [],
+  "feedback": "https://github.com/budougumi0617/claat-sample/issues",
+  "url": "claat-sample"
+}
