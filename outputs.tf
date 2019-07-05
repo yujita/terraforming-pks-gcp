@@ -15,7 +15,7 @@ output "Infrastructure Network Name" {
   value = "pks-infrastructure"
 }
 
-output "Infrastructure Network Google Network Name " {
+output "Infrastructure Network Google Network Name" {
   value = "${var.env_prefix}-virt-net/${var.env_prefix}-subnet-infrastructure-${var.region}/${var.region}"
 }
 

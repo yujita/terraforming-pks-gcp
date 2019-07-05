@@ -11,7 +11,7 @@ variable "zones" {
 }
 
 variable "nat_machine_type" {
-  default = "n1-standard-4"
+  default = "n1-standard-1" # originally "n1-standard-4"
   type = "string"
 }
 
@@ -54,4 +54,3 @@ variable "pks_lb_count" {
   type    = "string"
   default = 1
 }
-

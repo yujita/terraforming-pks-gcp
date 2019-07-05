@@ -1,8 +1,8 @@
 resource "google_compute_instance" "nat-instance-pri" {
-  name         = "${var.env_prefix}-nat-gateway-pri"
+  name = "${var.env_prefix}-nat-gateway-pri"
   machine_type = "${var.nat_machine_type}"
-  zone         = "${element(var.zones, 0)}"
-  tags         = ["nat-traverse", "${var.env_prefix}-nat-instance"]
+  zone = "${element(var.zones, 0)}"
+  tags = ["nat-traverse", "${var.env_prefix}-nat-instance"]
 
   can_ip_forward = true
 
@@ -18,7 +18,7 @@ resource "google_compute_instance" "nat-instance-pri" {
 
   network_interface {
     subnetwork = "${google_compute_subnetwork.infrastructure-subnet.name}"
-    address = "${cidrhost(var.infrastructure_cidr, 2)}"
+    network_ip = "${cidrhost(var.infrastructure_cidr, 2)}"
     access_config {
       // Ephemeral IP
     }
@@ -32,10 +32,10 @@ SCRIPT
 }
 
 resource "google_compute_instance" "nat-instance-sec" {
-  name         = "${var.env_prefix}-nat-gateway-sec"
+  name = "${var.env_prefix}-nat-gateway-sec"
   machine_type = "${var.nat_machine_type}"
-  zone         = "${element(var.zones, 1)}"
-  tags         = ["nat-traverse", "${var.env_prefix}-nat-instance"]
+  zone = "${element(var.zones, 1)}"
+  tags = ["nat-traverse", "${var.env_prefix}-nat-instance"]
 
   can_ip_forward = true
 
@@ -51,7 +51,7 @@ resource "google_compute_instance" "nat-instance-sec" {
 
   network_interface {
     subnetwork = "${google_compute_subnetwork.infrastructure-subnet.name}"
-    address = "${cidrhost(var.infrastructure_cidr, 3)}"
+    network_ip = "${cidrhost(var.infrastructure_cidr, 3)}"
     access_config {
       // Ephemeral IP
     }
@@ -65,10 +65,10 @@ SCRIPT
 }
 
 resource "google_compute_instance" "nat-instance-ter" {
-  name         = "${var.env_prefix}-nat-gateway-ter"
+  name = "${var.env_prefix}-nat-gateway-ter"
   machine_type = "${var.nat_machine_type}"
-  zone         = "${element(var.zones, 2)}"
-  tags         = ["nat-traverse", "${var.env_prefix}-nat-instance"]
+  zone = "${element(var.zones, 2)}"
+  tags = ["nat-traverse", "${var.env_prefix}-nat-instance"]
 
   can_ip_forward = true
 
@@ -84,7 +84,7 @@ resource "google_compute_instance" "nat-instance-ter" {
 
   network_interface {
     subnetwork = "${google_compute_subnetwork.infrastructure-subnet.name}"
-    address = "${cidrhost(var.infrastructure_cidr, 4)}"
+    network_ip = "${cidrhost(var.infrastructure_cidr, 4)}"
     access_config {
       // Ephemeral IP
     }
